@@ -1,0 +1,57 @@
+name: CI - Maven Derleme Sureci
+
+on:
+  push:
+    branches: [ "main", "dev" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    name: Proje Derleme ve Test
+    runs-on: ubuntu-latest   # Islemler en guncel Ubuntu sunucusunda yapilir
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_DATABASE: kulup
+          MYSQL_ROOT_PASSWORD: root
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    steps:
+      - name: Depoyu Kontrol Et
+        uses: actions/checkout@v4   # GitHub'daki kodlari sanal makineye ceker
+
+      - name: JDK 17 Kurulumu
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'        # Projenin Java versiyonu
+          cache: maven              # Bagimliliklari hafizaya alarak islemi hizlandirir
+
+      - name: MySQL hazir olana kadar bekle
+        run: |
+          for i in {1..40}; do
+            if mysqladmin ping -h 127.0.0.1 -uroot -proot --silent; then
+              echo "MySQL hazir"
+              break
+            fi
+            echo "MySQL bekleniyor..."
+            sleep 3
+          done
+
+      - name: Maven Test + Build
+        env:
+          SPRING_DATASOURCE_URL: jdbc:mysql://127.0.0.1:3306/kulup?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true&useUnicode=true&characterEncoding=utf8
+          SPRING_DATASOURCE_USERNAME: root
+          SPRING_DATASOURCE_PASSWORD: root
+          SPRING_JPA_HIBERNATE_DDL_AUTO: update
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: mvn -B clean verify
