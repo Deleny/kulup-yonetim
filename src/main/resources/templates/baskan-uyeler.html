@@ -108,6 +108,7 @@
             <a href="/baskan/etkinlikler"><i class="bi bi-calendar-event"></i> Etkinlikler</a>
             <a href="/baskan/gorevler"><i class="bi bi-list-check"></i> Gorevler</a>
             <a href="/baskan/aidatlar"><i class="bi bi-cash-stack"></i> Aidatlar</a>
+            <a href="/baskan/kulup-ayarlari"><i class="bi bi-gear"></i> Kulup Ayarlari</a>
             <a href="/panel"><i class="bi bi-house-door"></i> Ana Sayfa</a>
             <a href="/cikis" style="color: #ef4444 !important;"><i class="bi bi-box-arrow-left"></i> Cikis</a>
         </nav>
@@ -149,10 +150,13 @@
                             <td th:text="${uye.telefon}">Tel</td>
                             <td th:text="${uye.kayitTarihi}">Tarih</td>
                             <td class="text-end">
-                                <form th:action="@{/baskan/uye/{id}/onayla(id=${uye.id})}" method="post" class="d-inline">
-                                    <button class="btn btn-success btn-sm"><i class="bi bi-check-lg"></i> Onayla</button>
+                                <form th:action="@{/baskan/uye/{id}/onayla(id=${uye.id})}" method="post"
+                                    class="d-inline">
+                                    <button class="btn btn-success btn-sm"><i class="bi bi-check-lg"></i>
+                                        Onayla</button>
                                 </form>
-                                <form th:action="@{/baskan/uye/{id}/reddet(id=${uye.id})}" method="post" class="d-inline ms-1">
+                                <form th:action="@{/baskan/uye/{id}/reddet(id=${uye.id})}" method="post"
+                                    class="d-inline ms-1">
                                     <button class="btn btn-danger btn-sm"><i class="bi bi-x-lg"></i> Reddet</button>
                                 </form>
                             </td>
