@@ -244,11 +244,15 @@ const styles = StyleSheet.create({
         fontSize: SIZES.fontXxl,
         fontWeight: FONTS.bold,
         color: COLORS.text,
+        textAlign: 'center',
+        paddingHorizontal: SIZES.lg,
     },
     kulupAciklama: {
         fontSize: SIZES.fontMd,
         color: COLORS.textSecondary,
         marginTop: SIZES.xs,
+        textAlign: 'center',
+        paddingHorizontal: SIZES.lg,
     },
     rolBadge: {
         flexDirection: 'row',
