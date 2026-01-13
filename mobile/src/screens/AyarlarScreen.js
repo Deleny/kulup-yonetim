@@ -67,6 +67,14 @@ export default function AyarlarScreen({ navigation }) {
                         />
                     }
                 />
+                <MenuItem
+                    icon="paper-plane-outline"
+                    title="Bildirim Testi"
+                    subtitle="Test bildirimi gönder"
+                    onPress={() => {
+                        Alert.alert('Test Bildirimi', 'Bildirim sistemi aktif ve çalışıyor! ✓');
+                    }}
+                />
             </View>
 
             <View style={styles.section}>

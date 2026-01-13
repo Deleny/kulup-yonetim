@@ -20,6 +20,7 @@ export default function KulupAyarlariScreen({ navigation }) {
     const [kulup, setKulup] = useState(null);
     const [ad, setAd] = useState('');
     const [aciklama, setAciklama] = useState('');
+    const [isGeneratingAi, setIsGeneratingAi] = useState(false);
 
     useEffect(() => {
         loadKulup();
@@ -68,6 +69,28 @@ export default function KulupAyarlariScreen({ navigation }) {
             Alert.alert('Hata', error.response?.data?.error || 'Kulüp güncellenemedi');
         } finally {
             setSaving(false);
+        }
+    };
+
+    // AI ile açıklama oluştur
+    const generateAiDescription = async () => {
+        if (!ad.trim()) {
+            Alert.alert('Hata', 'Önce kulüp adı girin');
+            return;
+        }
+        setIsGeneratingAi(true);
+        try {
+            const response = await api.post('/ai/club-description', {
+                clubName: ad.trim()
+            });
+            if (response.data.description) {
+                setAciklama(response.data.description);
+            }
+        } catch (error) {
+            console.log('AI hatası:', error.message);
+            Alert.alert('AI Hatası', 'Açıklama oluşturulamadı.');
+        } finally {
+            setIsGeneratingAi(false);
         }
     };
 
@@ -120,6 +143,22 @@ export default function KulupAyarlariScreen({ navigation }) {
                         />
                     </View>
                 </View>
+
+                {/* AI ile Açıklama Oluştur Butonu */}
+                <TouchableOpacity
+                    style={[styles.aiButton, (!ad.trim() || isGeneratingAi) && styles.aiButtonDisabled]}
+                    onPress={generateAiDescription}
+                    disabled={isGeneratingAi || !ad.trim()}
+                >
+                    {isGeneratingAi ? (
+                        <ActivityIndicator size="small" color="#8b5cf6" />
+                    ) : (
+                        <>
+                            <Ionicons name="sparkles" size={18} color="#8b5cf6" />
+                            <Text style={styles.aiButtonText}>AI ile Açıklama Oluştur</Text>
+                        </>
+                    )}
+                </TouchableOpacity>
             </View>
 
             <View style={styles.section}>
@@ -293,5 +332,25 @@ const styles = StyleSheet.create({
         fontSize: SIZES.fontLg,
         fontWeight: FONTS.bold,
         color: COLORS.white,
+    },
+    aiButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: 'rgba(139, 92, 246, 0.1)',
+        borderRadius: SIZES.radiusMd,
+        borderWidth: 1,
+        borderColor: '#8b5cf6',
+        paddingVertical: SIZES.md,
+        gap: SIZES.sm,
+        marginTop: SIZES.sm,
+    },
+    aiButtonDisabled: {
+        opacity: 0.5,
+    },
+    aiButtonText: {
+        fontSize: SIZES.fontSm,
+        fontWeight: FONTS.semibold,
+        color: '#8b5cf6',
     },
 });

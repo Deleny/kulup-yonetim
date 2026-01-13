@@ -107,6 +107,30 @@ export default function UyeYonetimScreen({ navigation }) {
         );
     };
 
+    const handleChangePozisyon = (uye) => {
+        Alert.alert(
+            'Pozisyon Değiştir',
+            `${uye.adSoyad} için yeni pozisyon seçin:`,
+            [
+                { text: 'İptal', style: 'cancel' },
+                {
+                    text: 'Üye', onPress: () => {
+                        setUyeler(prev => prev.map(u =>
+                            u.id === uye.id ? { ...u, pozisyon: 'Uye' } : u
+                        ));
+                    }
+                },
+                {
+                    text: 'Yönetici', onPress: () => {
+                        setUyeler(prev => prev.map(u =>
+                            u.id === uye.id ? { ...u, pozisyon: 'Yonetici' } : u
+                        ));
+                    }
+                },
+            ]
+        );
+    };
+
     const renderUye = ({ item }) => (
         <View style={styles.card}>
             <View style={styles.avatar}>
@@ -123,9 +147,14 @@ export default function UyeYonetimScreen({ navigation }) {
                     </View>
                 </View>
             </View>
-            <TouchableOpacity style={styles.removeButton} onPress={() => handleRemoveUye(item)}>
-                <Ionicons name="close" size={20} color={COLORS.error} />
-            </TouchableOpacity>
+            <View style={styles.actionButtons}>
+                <TouchableOpacity style={styles.editButton} onPress={() => handleChangePozisyon(item)}>
+                    <Ionicons name="create-outline" size={18} color={COLORS.primary} />
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.removeButton} onPress={() => handleRemoveUye(item)}>
+                    <Ionicons name="close" size={20} color={COLORS.error} />
+                </TouchableOpacity>
+            </View>
         </View>
     );
 
@@ -323,6 +352,14 @@ const styles = StyleSheet.create({
         height: 36,
         borderRadius: SIZES.radiusSm,
         backgroundColor: COLORS.errorLight,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    editButton: {
+        width: 36,
+        height: 36,
+        borderRadius: SIZES.radiusSm,
+        backgroundColor: COLORS.primaryLight,
         justifyContent: 'center',
         alignItems: 'center',
     },

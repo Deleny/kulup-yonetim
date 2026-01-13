@@ -8,6 +8,7 @@ import {
     RefreshControl,
     ActivityIndicator,
     Alert,
+    Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SIZES, FONTS, SHADOWS } from '../theme';
@@ -17,6 +18,8 @@ export default function EtkinliklerScreen() {
     const [etkinlikler, setEtkinlikler] = useState([]);
     const [refreshing, setRefreshing] = useState(false);
     const [loading, setLoading] = useState(true);
+    const [modalVisible, setModalVisible] = useState(false);
+    const [selectedEtkinlik, setSelectedEtkinlik] = useState(null);
 
     useEffect(() => {
         loadEtkinlikler();
@@ -28,6 +31,7 @@ export default function EtkinliklerScreen() {
             const data = response.data.map(e => ({
                 id: e.id,
                 baslik: e.baslik,
+                aciklama: e.aciklama || '',
                 kulup: e.kulup?.ad || 'Bilinmiyor',
                 tarih: formatTarih(e.tarih),
                 saat: e.saat || '00:00',
@@ -72,10 +76,20 @@ export default function EtkinliklerScreen() {
         }
     };
 
+    const openEtkinlikDetail = (etkinlik) => {
+        setSelectedEtkinlik(etkinlik);
+        setModalVisible(true);
+    };
+
+    const handleIlgiGoster = () => {
+        Alert.alert('Başarılı', `"${selectedEtkinlik?.baslik}" etkinliğine ilgi gösterdiniz!`);
+        setModalVisible(false);
+    };
+
     const renderEtkinlik = ({ item }) => {
         const durumStyle = getDurumStyle(item.durum);
         return (
-            <TouchableOpacity style={styles.card} activeOpacity={0.7}>
+            <TouchableOpacity style={styles.card} activeOpacity={0.7} onPress={() => openEtkinlikDetail(item)}>
                 <View style={styles.dateBox}>
                     <Text style={styles.dateDay}>{item.tarih.split(' ')[0]}</Text>
                     <Text style={styles.dateMonth}>{item.tarih.split(' ')[1]}</Text>
@@ -129,6 +143,64 @@ export default function EtkinliklerScreen() {
                     </View>
                 }
             />
+
+            {/* Etkinlik Detay Modal */}
+            <Modal
+                animationType="slide"
+                transparent={true}
+                visible={modalVisible}
+                onRequestClose={() => setModalVisible(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>Etkinlik Detayı</Text>
+                            <TouchableOpacity onPress={() => setModalVisible(false)}>
+                                <Ionicons name="close" size={24} color={COLORS.gray500} />
+                            </TouchableOpacity>
+                        </View>
+
+                        {selectedEtkinlik && (
+                            <>
+                                <View style={styles.modalDateBox}>
+                                    <Text style={styles.modalDateDay}>{selectedEtkinlik.tarih.split(' ')[0]}</Text>
+                                    <Text style={styles.modalDateMonth}>{selectedEtkinlik.tarih.split(' ')[1]}</Text>
+                                </View>
+
+                                <Text style={styles.modalEtkinlikTitle}>{selectedEtkinlik.baslik}</Text>
+
+                                <View style={styles.modalKulupBadge}>
+                                    <Ionicons name="people" size={14} color={COLORS.primary} />
+                                    <Text style={styles.modalKulupText}>{selectedEtkinlik.kulup}</Text>
+                                </View>
+
+                                <View style={styles.modalInfoRow}>
+                                    <View style={styles.modalInfoItem}>
+                                        <Ionicons name="time-outline" size={18} color={COLORS.gray500} />
+                                        <Text style={styles.modalInfoText}>{selectedEtkinlik.saat}</Text>
+                                    </View>
+                                    <View style={styles.modalInfoItem}>
+                                        <Ionicons name="location-outline" size={18} color={COLORS.gray500} />
+                                        <Text style={styles.modalInfoText}>{selectedEtkinlik.konum}</Text>
+                                    </View>
+                                </View>
+
+                                {selectedEtkinlik.aciklama ? (
+                                    <View style={styles.modalAciklama}>
+                                        <Text style={styles.modalAciklamaTitle}>Açıklama</Text>
+                                        <Text style={styles.modalAciklamaText}>{selectedEtkinlik.aciklama}</Text>
+                                    </View>
+                                ) : null}
+
+                                <TouchableOpacity style={styles.ilgiButton} onPress={handleIlgiGoster}>
+                                    <Ionicons name="heart" size={20} color={COLORS.white} />
+                                    <Text style={styles.ilgiButtonText}>İlgi Göster</Text>
+                                </TouchableOpacity>
+                            </>
+                        )}
+                    </View>
+                </View>
+            </Modal>
         </View>
     );
 }
@@ -229,5 +301,120 @@ const styles = StyleSheet.create({
         fontSize: SIZES.fontMd,
         color: COLORS.gray400,
         marginTop: SIZES.lg,
+    },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        justifyContent: 'flex-end',
+    },
+    modalContent: {
+        backgroundColor: COLORS.white,
+        borderTopLeftRadius: SIZES.radiusXxl,
+        borderTopRightRadius: SIZES.radiusXxl,
+        padding: SIZES.xxl,
+        paddingBottom: SIZES.xxxl,
+        alignItems: 'center',
+    },
+    modalHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        width: '100%',
+        marginBottom: SIZES.xl,
+    },
+    modalTitle: {
+        fontSize: SIZES.fontXxl,
+        fontWeight: FONTS.bold,
+        color: COLORS.text,
+    },
+    modalDateBox: {
+        width: 80,
+        height: 80,
+        borderRadius: SIZES.radiusLg,
+        backgroundColor: COLORS.primary,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: SIZES.lg,
+    },
+    modalDateDay: {
+        fontSize: 32,
+        fontWeight: FONTS.bold,
+        color: COLORS.white,
+    },
+    modalDateMonth: {
+        fontSize: SIZES.fontSm,
+        color: COLORS.white,
+        textTransform: 'uppercase',
+    },
+    modalEtkinlikTitle: {
+        fontSize: SIZES.fontXxl,
+        fontWeight: FONTS.bold,
+        color: COLORS.text,
+        textAlign: 'center',
+        marginBottom: SIZES.md,
+    },
+    modalKulupBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: COLORS.primaryLight,
+        paddingHorizontal: SIZES.md,
+        paddingVertical: SIZES.sm,
+        borderRadius: SIZES.radiusFull,
+        marginBottom: SIZES.lg,
+        gap: SIZES.xs,
+    },
+    modalKulupText: {
+        fontSize: SIZES.fontSm,
+        fontWeight: FONTS.medium,
+        color: COLORS.primary,
+    },
+    modalInfoRow: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        gap: SIZES.xxl,
+        marginBottom: SIZES.lg,
+    },
+    modalInfoItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: SIZES.sm,
+    },
+    modalInfoText: {
+        fontSize: SIZES.fontMd,
+        color: COLORS.gray600,
+    },
+    modalAciklama: {
+        width: '100%',
+        backgroundColor: COLORS.gray50,
+        borderRadius: SIZES.radiusMd,
+        padding: SIZES.lg,
+        marginBottom: SIZES.lg,
+    },
+    modalAciklamaTitle: {
+        fontSize: SIZES.fontSm,
+        fontWeight: FONTS.semibold,
+        color: COLORS.gray500,
+        marginBottom: SIZES.sm,
+    },
+    modalAciklamaText: {
+        fontSize: SIZES.fontMd,
+        color: COLORS.text,
+        lineHeight: 22,
+    },
+    ilgiButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#ec4899',
+        borderRadius: SIZES.radiusMd,
+        paddingVertical: SIZES.lg,
+        paddingHorizontal: SIZES.xxl,
+        gap: SIZES.sm,
+        width: '100%',
+    },
+    ilgiButtonText: {
+        fontSize: SIZES.fontMd,
+        fontWeight: FONTS.bold,
+        color: COLORS.white,
     },
 });
