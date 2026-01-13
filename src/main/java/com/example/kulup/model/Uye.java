@@ -22,6 +22,8 @@ public class Uye {
     @Column(nullable = false)
     private String pozisyon = "UYE"; // BASKAN, YONETICI, UYE
 
+    private String durum = "ONAY_BEKLIYOR"; // ONAY_BEKLIYOR, ONAYLANDI, REDDEDILDI
+
     private LocalDate kayitTarihi;
 
     @ManyToOne(fetch = FetchType.EAGER)
@@ -51,6 +53,7 @@ public class Uye {
         this.user = user;
         this.kulup = kulup;
         this.pozisyon = "UYE";
+        this.durum = "ONAY_BEKLIYOR";
         this.kayitTarihi = LocalDate.now();
     }
 
@@ -81,6 +84,14 @@ public class Uye {
 
     public void setPozisyon(String pozisyon) {
         this.pozisyon = pozisyon;
+    }
+
+    public String getDurum() {
+        return durum;
+    }
+
+    public void setDurum(String durum) {
+        this.durum = durum;
     }
 
     public LocalDate getKayitTarihi() {

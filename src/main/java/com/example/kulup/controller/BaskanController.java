@@ -135,12 +135,19 @@ public class BaskanController {
         }
 
         int safeUyePage = Math.max(0, uyePage);
-        Page<Uye> uyePageData = uyeRepository.findByKulupId(
-                kulup.getId(), PageRequest.of(safeUyePage, PAGE_SIZE, Sort.by("id").ascending()));
-
         model.addAttribute("kulup", kulup);
-        model.addAttribute("uyeler", uyePageData.getContent());
+        model.addAttribute("uyeler", uyeRepository.findByKulupIdAndDurum(kulup.getId(), "ONAYLANDI")); // Only approved
+                                                                                                       // members
+        model.addAttribute("bekleyenUyeler", uyeRepository.findByKulupIdAndDurum(kulup.getId(), "ONAY_BEKLIYOR")); // Pending
+                                                                                                                   // members
+        // Pagination logic needs update if filtering, but for now lists are fine or we
+        // remove page logic for simplicity or fix it later.
+        // Keeping uyePage but it might return mixed results if not filtered. Ideally we
+        // filter page too:
+        Page<Uye> uyePageData = uyeRepository.findByKulupIdAndDurum(
+                kulup.getId(), "ONAYLANDI", PageRequest.of(safeUyePage, PAGE_SIZE, Sort.by("id").ascending()));
         model.addAttribute("uyePage", uyePageData);
+        model.addAttribute("uyeler", uyePageData.getContent());
         model.addAttribute("tumUsers", userRepository.findAll());
 
         return "baskan-uyeler";
@@ -245,6 +252,24 @@ public class BaskanController {
                     && kulup.getBaskan().getId().equals(uye.getUser().getId())) {
                 return "redirect:/baskan/uyeler";
             }
+            uyeRepository.deleteById(id);
+        }
+        return "redirect:/baskan/uyeler";
+    }
+
+    @PostMapping("/uye/{id}/onayla")
+    public String uyeOnayla(@PathVariable Long id) {
+        Uye uye = uyeRepository.findById(id).orElse(null);
+        if (uye != null) {
+            uye.setDurum("ONAYLANDI");
+            uyeRepository.save(uye);
+        }
+        return "redirect:/baskan/uyeler";
+    }
+
+    @PostMapping("/uye/{id}/reddet")
+    public String uyeReddet(@PathVariable Long id) {
+        if (uyeRepository.existsById(id)) {
             uyeRepository.deleteById(id);
         }
         return "redirect:/baskan/uyeler";

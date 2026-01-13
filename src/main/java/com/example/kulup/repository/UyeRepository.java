@@ -12,10 +12,21 @@ import java.util.Optional;
 
 public interface UyeRepository extends JpaRepository<Uye, Long> {
     List<Uye> findByKulup(Kulup kulup);
+
     List<Uye> findByKulupId(Long kulupId);
+
     Page<Uye> findByKulupId(Long kulupId, Pageable pageable);
+
     List<Uye> findByUser(User user);
+
     List<Uye> findByUserId(Long userId);
+
     Optional<Uye> findByUserAndKulup(User user, Kulup kulup);
+
     boolean existsByUserAndKulup(User user, Kulup kulup);
+
+    // New methods for filtering by status
+    List<Uye> findByKulupIdAndDurum(Long kulupId, String durum);
+
+    Page<Uye> findByKulupIdAndDurum(Long kulupId, String durum, Pageable pageable);
 }

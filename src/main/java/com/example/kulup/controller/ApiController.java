@@ -58,7 +58,7 @@ public class ApiController {
     // Üyeler
     @GetMapping("/kulup/{kulupId}/uyeler")
     public List<Uye> getUyeler(@PathVariable Long kulupId) {
-        return uyeRepository.findByKulupId(kulupId);
+        return uyeRepository.findByKulupIdAndDurum(kulupId, "ONAYLANDI");
     }
 
     // Etkinlikler

@@ -161,8 +161,8 @@ const styles = StyleSheet.create({
         paddingBottom: SIZES.xl,
     },
     messageBubble: {
-        maxWidth: '85%',
-        padding: SIZES.md,
+        maxWidth: '80%',
+        padding: SIZES.lg,
         borderRadius: SIZES.radiusLg,
         marginBottom: SIZES.md,
     },
