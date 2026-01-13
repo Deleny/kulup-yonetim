@@ -14,6 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SIZES, FONTS, SHADOWS } from '../theme';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import api from '../services/api';
 
 export default function LoginScreen({ navigation }) {
     const [email, setEmail] = useState('');
@@ -29,15 +30,40 @@ export default function LoginScreen({ navigation }) {
 
         setLoading(true);
         try {
-            // API çağrısı - backend hazır olduğunda aktif edilecek
-            // const response = await api.post('/api/auth/login', { email, sifre });
-            // await AsyncStorage.setItem('userToken', response.data.token);
-            
-            // Şimdilik direkt geç
-            await AsyncStorage.setItem('userEmail', email);
+            const response = await api.post('/api/auth/login', { email, sifre });
+            const data = response.data;
+
+            // Kullanıcı bilgilerini sakla
+            await AsyncStorage.setItem('userId', data.userId.toString());
+            await AsyncStorage.setItem('userEmail', data.email);
+            await AsyncStorage.setItem('adSoyad', data.adSoyad);
+            await AsyncStorage.setItem('rol', data.rol);
+
+            // Başkan ise başkan kulüp bilgisini sakla
+            if (data.baskanKulupId) {
+                await AsyncStorage.setItem('baskanKulupId', data.baskanKulupId.toString());
+                await AsyncStorage.setItem('baskanKulupAd', data.baskanKulupAd);
+            }
+
+            // Push Notification başlat
+            try {
+                const { initializePushNotifications } = require('../services/notifications');
+                await initializePushNotifications();
+            } catch (e) {
+                console.log('Push notification hatası (önemli değil):', e.message);
+            }
+
             navigation.replace('Main');
         } catch (error) {
-            Alert.alert('Hata', 'Giriş başarısız. Email veya şifre hatalı.');
+            console.log('Login error details:', error);
+            if (error.message === 'Network Error') {
+                Alert.alert(
+                    'Bağlantı Hatası',
+                    'Sunucuya ulaşılamadı. Lütfen şunları kontrol edin:\n\n1. Telefon ve PC aynı WiFi\'da mı?\n2. Windows Firewall kapalı mı?\n3. IP adresi doğru mu?'
+                );
+            } else {
+                Alert.alert('Hata', error.response?.data?.error || 'Giriş yapılamadı');
+            }
         } finally {
             setLoading(false);
         }

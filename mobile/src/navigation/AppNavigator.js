@@ -14,6 +14,9 @@ import EtkinliklerScreen from '../screens/EtkinliklerScreen';
 import GorevlerimScreen from '../screens/GorevlerimScreen';
 import AidatlarimScreen from '../screens/AidatlarimScreen';
 import ProfilScreen from '../screens/ProfilScreen';
+import ProfilDuzenleScreen from '../screens/ProfilDuzenleScreen';
+import AyarlarScreen from '../screens/AyarlarScreen';
+import KulupAyarlariScreen from '../screens/KulupAyarlariScreen';
 
 // Baskan Screens
 import BaskanPanelScreen from '../screens/BaskanPanelScreen';
@@ -21,6 +24,9 @@ import UyeYonetimScreen from '../screens/UyeYonetimScreen';
 import EtkinlikYonetimScreen from '../screens/EtkinlikYonetimScreen';
 import GorevYonetimScreen from '../screens/GorevYonetimScreen';
 import AidatYonetimScreen from '../screens/AidatYonetimScreen';
+
+// AI Screen
+import AiAsistanScreen from '../screens/AiAsistanScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -154,8 +160,8 @@ export default function AppNavigator() {
                 <Stack.Screen name="Register" component={RegisterScreen} />
                 <Stack.Screen name="Main" component={MainTabs} />
                 <Stack.Screen name="BaskanMain" component={BaskanTabs} />
-                <Stack.Screen 
-                    name="Aidatlarim" 
+                <Stack.Screen
+                    name="Aidatlarim"
                     component={AidatlarimScreen}
                     options={{
                         headerShown: true,
@@ -165,13 +171,59 @@ export default function AppNavigator() {
                         headerTitleStyle: styles.headerTitle,
                     }}
                 />
-                <Stack.Screen 
-                    name="AidatYonetim" 
+                <Stack.Screen
+                    name="AidatYonetim"
                     component={AidatYonetimScreen}
                     options={{
                         headerShown: true,
                         headerTitle: 'Aidat Yönetimi',
                         headerStyle: { backgroundColor: '#d97706' },
+                        headerTintColor: COLORS.white,
+                        headerTitleStyle: styles.headerTitle,
+                    }}
+                />
+                <Stack.Screen
+                    name="ProfilDuzenle"
+                    component={ProfilDuzenleScreen}
+                    options={{
+                        headerShown: true,
+                        headerTitle: 'Profili Düzenle',
+                        headerStyle: styles.header,
+                        headerTintColor: COLORS.white,
+                        headerTitleStyle: styles.headerTitle,
+                    }}
+                />
+                <Stack.Screen
+                    name="Ayarlar"
+                    component={AyarlarScreen}
+                    options={{
+                        headerShown: true,
+                        headerTitle: 'Ayarlar',
+                        headerStyle: styles.header,
+                        headerTintColor: COLORS.white,
+                        headerTitleStyle: styles.headerTitle,
+                    }}
+                />
+                <Stack.Screen
+                    name="KulupAyarlari"
+                    component={KulupAyarlariScreen}
+                    options={{
+                        headerShown: true,
+                        headerTitle: 'Kulüp Ayarları',
+                        headerStyle: { backgroundColor: '#d97706' },
+                        headerTintColor: COLORS.white,
+                        headerTitleStyle: styles.headerTitle,
+                    }}
+                />
+                <Stack.Screen
+                    name="AiAsistan"
+                    component={AiAsistanScreen}
+                    options={{
+                        headerShown: true,
+                        headerTitle: 'AI Asistan',
+                        headerStyle: {
+                            backgroundColor: '#8b5cf6',
+                        },
                         headerTintColor: COLORS.white,
                         headerTitleStyle: styles.headerTitle,
                     }}

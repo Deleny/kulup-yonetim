@@ -13,6 +13,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SIZES, FONTS, SHADOWS } from '../theme';
+import api from '../services/api';
 
 export default function RegisterScreen({ navigation }) {
     const [adSoyad, setAdSoyad] = useState('');
@@ -28,12 +29,15 @@ export default function RegisterScreen({ navigation }) {
 
         setLoading(true);
         try {
-            // API çağrısı
+            // Gerçek API çağrısı
+            await api.post('/api/auth/register', { email, sifre, adSoyad });
+
             Alert.alert('Başarılı', 'Hesabınız oluşturuldu!', [
                 { text: 'Tamam', onPress: () => navigation.navigate('Login') }
             ]);
         } catch (error) {
-            Alert.alert('Hata', 'Kayıt başarısız');
+            const msg = error.response?.data?.error || 'Kayıt başarısız';
+            Alert.alert('Hata', msg);
         } finally {
             setLoading(false);
         }

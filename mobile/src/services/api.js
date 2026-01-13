@@ -1,9 +1,11 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Backend URL - ngrok veya local
-const BASE_URL = 'http://10.0.2.2:8080'; // Android emulator için
-// const BASE_URL = 'http://localhost:8080'; // iOS simulator için
+// ============================================
+// AWS DEPLOYMENT İÇİN BU SATIRI DEĞİŞTİR!
+// Örnek: const BASE_URL = 'http://your-aws-server.com:8080';
+// ============================================
+const BASE_URL = 'http://3.120.238.191:8080';
 
 const api = axios.create({
     baseURL: BASE_URL,

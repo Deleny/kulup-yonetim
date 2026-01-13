@@ -12,6 +12,7 @@ import {
     ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { COLORS, SIZES, FONTS, SHADOWS } from '../theme';
 import api from '../services/api';
 
@@ -22,11 +23,17 @@ export default function KuluplerimScreen({ navigation }) {
     const [loading, setLoading] = useState(true);
     const [modalVisible, setModalVisible] = useState(false);
     const [joinModalVisible, setJoinModalVisible] = useState(false);
+    const [createModalVisible, setCreateModalVisible] = useState(false);
     const [selectedKulup, setSelectedKulup] = useState(null);
     const [ogrenciNo, setOgrenciNo] = useState('');
     const [telefon, setTelefon] = useState('');
+    const [kulupAd, setKulupAd] = useState('');
+    const [kulupAciklama, setKulupAciklama] = useState('');
+    const [isCreating, setIsCreating] = useState(false);
+    const [isUserBaskan, setIsUserBaskan] = useState(false);
+    const [isGeneratingAi, setIsGeneratingAi] = useState(false);
 
-    // Demo data - API hazır olduğunda kaldırılacak
+    // Üyelik verilerini yükle
     useEffect(() => {
         loadData();
     }, []);
@@ -34,22 +41,73 @@ export default function KuluplerimScreen({ navigation }) {
     const loadData = async () => {
         setLoading(true);
         try {
-            // API çağrısı - backend hazır olduğunda
-            // const response = await api.get('/api/kulupler');
-            // setAktifKulupler(response.data);
-            
-            // Demo data
-            setKulupler([
-                { id: 1, ad: 'Yazılım Kulübü', pozisyon: 'Üye', uyeSayisi: 45, aciklama: 'Yazılım geliştirme ve teknoloji kulübü' },
-                { id: 2, ad: 'Müzik Kulübü', pozisyon: 'Yönetici', uyeSayisi: 32, aciklama: 'Müzik etkinlikleri ve konserler' },
-            ]);
-            setAktifKulupler([
-                { id: 3, ad: 'Spor Kulübü', uyeSayisi: 78, aciklama: 'Kampüs spor etkinlikleri' },
-                { id: 4, ad: 'Fotoğrafçılık', uyeSayisi: 24, aciklama: 'Fotoğraf sanatı ve sergiler' },
-                { id: 5, ad: 'Tiyatro', uyeSayisi: 19, aciklama: 'Tiyatro oyunları ve atölyeler' },
-            ]);
+            const userId = await AsyncStorage.getItem('userId') || '1';
+
+            // Aktif kulüpleri çek
+            const kuluplerResponse = await api.get('/api/kulupler');
+
+            // Kullanıcının üyelikleri
+            const uyeliklerResponse = await api.get(`/api/uye/${userId}/uyelikler`);
+            let uyelikData = uyeliklerResponse.data.map(u => ({
+                id: u.id,
+                uyelikId: u.id,
+                kulupId: u.kulup?.id,
+                ad: u.kulup?.ad || 'Bilinmiyor',
+                pozisyon: u.pozisyon || 'Üye',
+                uyeSayisi: u.kulup?.uyeler?.length || 0,
+                aciklama: u.kulup?.aciklama || '',
+                isBaskan: false
+            }));
+
+            // Başkanın kulübünü ayrıca çek ve listeye ekle
+            try {
+                const baskanRes = await api.get(`/api/user/${userId}/baskan-kulup`);
+                if (baskanRes.data.baskan) {
+                    setIsUserBaskan(true);
+                    const baskanKulupId = baskanRes.data.kulupId;
+                    // Zaten üye listesinde var mı kontrol et
+                    const mevcutMu = uyelikData.find(u => u.kulupId === baskanKulupId);
+                    if (!mevcutMu) {
+                        // Başkan ama üye olarak eklenmemiş, listeye ekle
+                        uyelikData.unshift({
+                            id: `baskan-${baskanKulupId}`,
+                            uyelikId: null,
+                            kulupId: baskanKulupId,
+                            ad: baskanRes.data.kulupAd,
+                            pozisyon: 'Başkan',
+                            uyeSayisi: 0,
+                            aciklama: baskanRes.data.kulupAciklama || '',
+                            isBaskan: true
+                        });
+                    } else {
+                        // Zaten üye, pozisyonu Başkan olarak güncelle
+                        mevcutMu.pozisyon = 'Başkan';
+                        mevcutMu.isBaskan = true;
+                    }
+                    // AsyncStorage'a başkan bilgisini kaydet
+                    await AsyncStorage.setItem('baskanKulupId', baskanKulupId.toString());
+                    await AsyncStorage.setItem('baskanKulupAd', baskanRes.data.kulupAd);
+                } else {
+                    // Başkan değil - kulüp oluşturma butonu görünsün
+                    setIsUserBaskan(false);
+                }
+            } catch (e) {
+                console.log('Başkan kulüp bilgisi alınamadı:', e.message);
+                setIsUserBaskan(false);
+            }
+
+            setKulupler(uyelikData);
+
+            // Zaten üye olunan kulüpleri filtrele
+            const uyeOlunanKulupIds = uyelikData.map(u => u.kulupId).filter(Boolean);
+            const filtrelenmisKulupler = (kuluplerResponse.data || []).filter(
+                k => !uyeOlunanKulupIds.includes(k.id)
+            );
+            setAktifKulupler(filtrelenmisKulupler);
+
         } catch (error) {
-            Alert.alert('Hata', 'Veriler yüklenirken bir hata oluştu');
+            console.log('API hatası:', error.message);
+            Alert.alert('Bağlantı Hatası', 'Kulüpler yüklenemedi. Backend bağlantısını kontrol edin.');
         } finally {
             setLoading(false);
         }
@@ -67,9 +125,14 @@ export default function KuluplerimScreen({ navigation }) {
         }
 
         try {
-            // API çağrısı
-            // await api.post(`/api/kulup/${selectedKulup.id}/katil`, { ogrenciNo, telefon });
-            
+            // Gerçek API çağrısı
+            const userId = await AsyncStorage.getItem('userId') || '1';
+            await api.post(`/api/kulup/${selectedKulup.id}/katil`, {
+                userId: parseInt(userId),
+                ogrenciNo,
+                telefon
+            });
+
             Alert.alert('Başarılı', `${selectedKulup.ad} kulübüne katılım talebiniz alındı!`);
             setJoinModalVisible(false);
             setOgrenciNo('');
@@ -77,7 +140,97 @@ export default function KuluplerimScreen({ navigation }) {
             setSelectedKulup(null);
             loadData();
         } catch (error) {
-            Alert.alert('Hata', 'Katılım işlemi başarısız');
+            Alert.alert('Hata', error.response?.data?.error || 'Katılım işlemi başarısız');
+        }
+    };
+
+    // Kulüp oluşturma fonksiyonu
+    const handleCreateKulup = async () => {
+        if (!kulupAd.trim()) {
+            Alert.alert('Hata', 'Kulüp adı gereklidir');
+            return;
+        }
+        if (!kulupAciklama.trim()) {
+            Alert.alert('Hata', 'Kulüp açıklaması gereklidir');
+            return;
+        }
+
+        setIsCreating(true);
+        try {
+            const userId = await AsyncStorage.getItem('userId') || '1';
+            await api.post('/api/kulup-olustur', {
+                userId: parseInt(userId),
+                ad: kulupAd.trim(),
+                aciklama: kulupAciklama.trim()
+            });
+
+            Alert.alert(
+                'Başarılı',
+                'Kulüp başarıyla oluşturuldu! Admin onayından sonra aktif olacaktır.',
+                [{ text: 'Tamam', onPress: () => { } }]
+            );
+            setCreateModalVisible(false);
+            setKulupAd('');
+            setKulupAciklama('');
+            loadData();
+        } catch (error) {
+            Alert.alert('Hata', error.response?.data?.error || 'Kulüp oluşturulurken bir hata oluştu');
+        } finally {
+            setIsCreating(false);
+        }
+    };
+
+    // Kulüpten ayrılma fonksiyonu
+    const handleLeaveKulup = (item) => {
+        if (item.pozisyon === 'Yönetici' || item.pozisyon === 'Baskan') {
+            Alert.alert('Uyarı', 'Kulüp başkanı olarak ayrılamazsınız');
+            return;
+        }
+
+        Alert.alert(
+            'Kulüpten Ayrıl',
+            `${item.ad} kulübünden ayrılmak istediğinize emin misiniz?`,
+            [
+                { text: 'İptal', style: 'cancel' },
+                {
+                    text: 'Ayrıl',
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            const userId = await AsyncStorage.getItem('userId') || '1';
+                            await api.delete(`/api/uyelik/${item.uyelikId}/ayril`, {
+                                data: { userId: parseInt(userId) }
+                            });
+                            Alert.alert('Başarılı', 'Kulüpten ayrıldınız');
+                            loadData();
+                        } catch (error) {
+                            Alert.alert('Hata', error.response?.data?.error || 'Ayrılma işlemi başarısız');
+                        }
+                    }
+                }
+            ]
+        );
+    };
+
+    // AI ile açıklama oluştur
+    const generateAiDescription = async () => {
+        if (!kulupAd.trim()) {
+            Alert.alert('Hata', 'Önce kulüp adı girin');
+            return;
+        }
+        setIsGeneratingAi(true);
+        try {
+            const response = await api.post('/ai/club-description', {
+                clubName: kulupAd.trim()
+            });
+            if (response.data.description) {
+                setKulupAciklama(response.data.description);
+            }
+        } catch (error) {
+            console.log('AI hatası:', error.message);
+            Alert.alert('AI Hatası', 'Açıklama oluşturulamadı. Lütfen manuel olarak yazın.');
+        } finally {
+            setIsGeneratingAi(false);
         }
     };
 
@@ -86,37 +239,52 @@ export default function KuluplerimScreen({ navigation }) {
         setJoinModalVisible(true);
     };
 
-    const renderMyKulup = ({ item }) => (
-        <TouchableOpacity 
-            style={styles.card} 
-            activeOpacity={0.7}
-            onPress={() => item.pozisyon === 'Yönetici' && navigation.navigate('BaskanMain')}
-        >
-            <View style={styles.avatar}>
-                <Text style={styles.avatarText}>{item.ad.charAt(0)}</Text>
-            </View>
-            <View style={styles.cardContent}>
-                <Text style={styles.kulupAd}>{item.ad}</Text>
-                <View style={styles.infoRow}>
-                    <View style={[styles.badge, item.pozisyon === 'Yönetici' && styles.badgeAdmin]}>
-                        <Text style={[styles.badgeText, item.pozisyon === 'Yönetici' && styles.badgeTextAdmin]}>
-                            {item.pozisyon}
-                        </Text>
+    const renderMyKulup = ({ item }) => {
+        // Sadece Başkan olanlar panele erişebilir
+        const isBaskan = item.isBaskan || item.pozisyon === 'Başkan';
+
+        return (
+            <TouchableOpacity
+                style={styles.card}
+                activeOpacity={0.7}
+                onPress={() => isBaskan && navigation.navigate('BaskanMain')}
+                onLongPress={() => !isBaskan && handleLeaveKulup(item)}
+            >
+                <View style={[styles.avatar, isBaskan && { backgroundColor: '#d97706' }]}>
+                    <Text style={styles.avatarText}>{item.ad.charAt(0)}</Text>
+                </View>
+                <View style={styles.cardContent}>
+                    <Text style={styles.kulupAd}>{item.ad}</Text>
+                    <View style={styles.infoRow}>
+                        <View style={[styles.badge, isBaskan && styles.badgeAdmin]}>
+                            <Text style={[styles.badgeText, isBaskan && styles.badgeTextAdmin]}>
+                                {item.pozisyon}
+                            </Text>
+                        </View>
+                        {item.uyeSayisi > 0 && (
+                            <Text style={styles.uyeSayisi}>
+                                <Ionicons name="people-outline" size={14} color={COLORS.gray400} /> {item.uyeSayisi}
+                            </Text>
+                        )}
                     </View>
-                    <Text style={styles.uyeSayisi}>
-                        <Ionicons name="people-outline" size={14} color={COLORS.gray400} /> {item.uyeSayisi}
-                    </Text>
+                    {!isBaskan && <Text style={styles.leaveHint}>Ayrılmak için basılı tutun</Text>}
+                    {isBaskan && <Text style={[styles.leaveHint, { color: '#d97706' }]}>Panele gitmek için dokunun</Text>}
                 </View>
-            </View>
-            {item.pozisyon === 'Yönetici' ? (
-                <View style={styles.manageIcon}>
-                    <Ionicons name="shield-checkmark" size={20} color="#d97706" />
-                </View>
-            ) : (
-                <Ionicons name="chevron-forward" size={20} color={COLORS.gray300} />
-            )}
-        </TouchableOpacity>
-    );
+                {isBaskan ? (
+                    <View style={styles.manageIcon}>
+                        <Ionicons name="shield-checkmark" size={20} color="#d97706" />
+                    </View>
+                ) : (
+                    <TouchableOpacity
+                        style={styles.leaveButton}
+                        onPress={() => handleLeaveKulup(item)}
+                    >
+                        <Ionicons name="exit-outline" size={18} color="#dc2626" />
+                    </TouchableOpacity>
+                )}
+            </TouchableOpacity>
+        );
+    };
 
     const renderAvailableKulup = ({ item }) => (
         <View style={styles.availableCard}>
@@ -232,6 +400,96 @@ export default function KuluplerimScreen({ navigation }) {
                     </View>
                 </View>
             </Modal>
+
+            {/* Kulüp Oluştur Modal */}
+            <Modal
+                animationType="slide"
+                transparent={true}
+                visible={createModalVisible}
+                onRequestClose={() => setCreateModalVisible(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>Yeni Kulüp Oluştur</Text>
+                            <TouchableOpacity onPress={() => setCreateModalVisible(false)}>
+                                <Ionicons name="close" size={24} color={COLORS.gray500} />
+                            </TouchableOpacity>
+                        </View>
+
+                        <View style={styles.infoBox}>
+                            <Ionicons name="information-circle" size={20} color="#0ea5e9" />
+                            <Text style={styles.infoText}>
+                                Kulübünüz admin onayından sonra aktif olacaktır.
+                            </Text>
+                        </View>
+
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.inputLabel}>Kulüp Adı *</Text>
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Örn: Yazılım Kulübü"
+                                value={kulupAd}
+                                onChangeText={setKulupAd}
+                            />
+                        </View>
+
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.inputLabel}>Açıklama *</Text>
+                            <TextInput
+                                style={[styles.input, styles.textArea]}
+                                placeholder="Kulübünüzü kısaca tanıtın..."
+                                value={kulupAciklama}
+                                onChangeText={setKulupAciklama}
+                                multiline
+                                numberOfLines={4}
+                                textAlignVertical="top"
+                            />
+                        </View>
+
+                        <TouchableOpacity
+                            style={[styles.aiButton, (!kulupAd.trim() || isGeneratingAi) && styles.aiButtonDisabled]}
+                            onPress={generateAiDescription}
+                            disabled={isGeneratingAi || !kulupAd.trim()}
+                        >
+                            {isGeneratingAi ? (
+                                <ActivityIndicator size="small" color="#8b5cf6" />
+                            ) : (
+                                <>
+                                    <Ionicons name="sparkles" size={18} color="#8b5cf6" />
+                                    <Text style={styles.aiButtonText}>AI ile Açıklama Oluştur</Text>
+                                </>
+                            )}
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                            style={[styles.submitButton, isCreating && styles.submitButtonDisabled]}
+                            onPress={handleCreateKulup}
+                            disabled={isCreating}
+                        >
+                            {isCreating ? (
+                                <ActivityIndicator size="small" color={COLORS.white} />
+                            ) : (
+                                <>
+                                    <Ionicons name="add-circle" size={20} color={COLORS.white} />
+                                    <Text style={styles.submitButtonText}>Kulüp Oluştur</Text>
+                                </>
+                            )}
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
+
+            {/* Kulüp Oluştur FAB Butonu - Sadece Başkan Olmayanlar Görebilir */}
+            {!isUserBaskan && (
+                <TouchableOpacity
+                    style={styles.fab}
+                    onPress={() => setCreateModalVisible(true)}
+                    activeOpacity={0.8}
+                >
+                    <Ionicons name="add" size={28} color={COLORS.white} />
+                </TouchableOpacity>
+            )}
         </View>
     );
 }
@@ -468,5 +726,72 @@ const styles = StyleSheet.create({
         backgroundColor: '#fef3c7',
         justifyContent: 'center',
         alignItems: 'center',
+    },
+    fab: {
+        position: 'absolute',
+        right: SIZES.lg,
+        bottom: SIZES.xxl,
+        width: 56,
+        height: 56,
+        borderRadius: 28,
+        backgroundColor: COLORS.primary,
+        justifyContent: 'center',
+        alignItems: 'center',
+        ...SHADOWS.primary,
+        elevation: 8,
+    },
+    infoBox: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(14, 165, 233, 0.1)',
+        borderRadius: SIZES.radiusMd,
+        padding: SIZES.md,
+        marginBottom: SIZES.lg,
+        gap: SIZES.sm,
+    },
+    infoText: {
+        flex: 1,
+        fontSize: SIZES.fontSm,
+        color: '#0ea5e9',
+    },
+    textArea: {
+        minHeight: 100,
+        paddingTop: SIZES.md,
+    },
+    submitButtonDisabled: {
+        backgroundColor: COLORS.gray400,
+    },
+    leaveHint: {
+        fontSize: SIZES.fontXs,
+        color: COLORS.gray400,
+        marginTop: SIZES.xs,
+    },
+    leaveButton: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: '#fef2f2',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    aiButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: 'rgba(139, 92, 246, 0.1)',
+        borderRadius: SIZES.radiusMd,
+        borderWidth: 1,
+        borderColor: '#8b5cf6',
+        paddingVertical: SIZES.md,
+        gap: SIZES.sm,
+        marginBottom: SIZES.md,
+    },
+    aiButtonDisabled: {
+        opacity: 0.5,
+    },
+    aiButtonText: {
+        fontSize: SIZES.fontSm,
+        fontWeight: FONTS.semibold,
+        color: '#8b5cf6',
     },
 });

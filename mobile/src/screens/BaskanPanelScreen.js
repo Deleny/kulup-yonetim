@@ -8,14 +8,19 @@ import {
     RefreshControl,
     ActivityIndicator,
     Alert,
+    Platform,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SIZES, FONTS, SHADOWS } from '../theme';
+import api from '../services/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function BaskanPanelScreen({ navigation, route }) {
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [kulup, setKulup] = useState(null);
+    const [kulupId, setKulupId] = useState(null);
     const [stats, setStats] = useState({
         uyeSayisi: 0,
         bekleyenTalep: 0,
@@ -31,21 +36,35 @@ export default function BaskanPanelScreen({ navigation, route }) {
     const loadData = async () => {
         setLoading(true);
         try {
-            // Demo data
-            setKulup({
-                id: 1,
-                ad: 'Yazilim Kulubu',
-                aciklama: 'Yazilim gelistirme ve teknoloji kulubu',
-            });
+            // AsyncStorage'dan başkan kulüp ID'sini al
+            const storedKulupId = await AsyncStorage.getItem('baskanKulupId');
+            if (!storedKulupId) {
+                Alert.alert('Hata', 'Başkan kulüp bilgisi bulunamadı');
+                navigation.goBack();
+                return;
+            }
+
+            const id = parseInt(storedKulupId);
+            setKulupId(id);
+
+            // Kulüp bilgisi
+            const kulupRes = await api.get(`/api/kulup/${id}`);
+            setKulup(kulupRes.data);
+
+            // İstatistikler
+            const statsRes = await api.get(`/api/kulup/${id}/istatistikler`);
+            const etkinlikRes = await api.get(`/api/kulup/${id}/etkinlikler`);
+
             setStats({
-                uyeSayisi: 45,
-                bekleyenTalep: 3,
-                aktifEtkinlik: 2,
-                bekleyenGorev: 8,
-                odenmemisAidat: 12,
+                uyeSayisi: statsRes.data.toplamUye || 0,
+                bekleyenTalep: 0, // Backend'de ayrı endpoint gerekebilir
+                aktifEtkinlik: etkinlikRes.data?.length || 0,
+                bekleyenGorev: statsRes.data.bekleyenGorev || 0,
+                odenmemisAidat: statsRes.data.bekleyenAidat || 0,
             });
         } catch (error) {
-            Alert.alert('Hata', 'Veriler yuklenemedi');
+            console.log('Veri yükleme hatası:', error.message);
+            Alert.alert('Hata', 'Veriler yüklenemedi. Backend bağlantısını kontrol edin.');
         } finally {
             setLoading(false);
         }
@@ -87,6 +106,15 @@ export default function BaskanPanelScreen({ navigation, route }) {
         >
             {/* Kulup Header */}
             <View style={styles.header}>
+                {/* Geri Butonu */}
+                <TouchableOpacity
+                    style={styles.backButton}
+                    onPress={() => navigation.navigate('Main')}
+                >
+                    <Ionicons name="arrow-back" size={20} color={COLORS.primary} />
+                    <Text style={styles.backButtonText}>Üye Paneline Dön</Text>
+                </TouchableOpacity>
+
                 <View style={styles.kulupAvatar}>
                     <Text style={styles.kulupAvatarText}>{kulup?.ad?.charAt(0) || 'K'}</Text>
                 </View>
@@ -153,37 +181,7 @@ export default function BaskanPanelScreen({ navigation, route }) {
                 />
             </View>
 
-            {/* Son Aktiviteler */}
-            <Text style={styles.sectionTitle}>Son Islemler</Text>
-            <View style={styles.activityCard}>
-                <View style={styles.activityItem}>
-                    <View style={[styles.activityIcon, { backgroundColor: '#dcfce7' }]}>
-                        <Ionicons name="person-add" size={16} color="#16a34a" />
-                    </View>
-                    <View style={styles.activityContent}>
-                        <Text style={styles.activityText}>Ahmet Yilmaz uyelik talebi gonderdi</Text>
-                        <Text style={styles.activityTime}>2 saat once</Text>
-                    </View>
-                </View>
-                <View style={styles.activityItem}>
-                    <View style={[styles.activityIcon, { backgroundColor: '#dbeafe' }]}>
-                        <Ionicons name="calendar" size={16} color="#2563eb" />
-                    </View>
-                    <View style={styles.activityContent}>
-                        <Text style={styles.activityText}>Yeni etkinlik olusturuldu</Text>
-                        <Text style={styles.activityTime}>1 gun once</Text>
-                    </View>
-                </View>
-                <View style={styles.activityItem}>
-                    <View style={[styles.activityIcon, { backgroundColor: '#fef3c7' }]}>
-                        <Ionicons name="cash" size={16} color="#d97706" />
-                    </View>
-                    <View style={styles.activityContent}>
-                        <Text style={styles.activityText}>Mehmet Kaya aidat odedi</Text>
-                        <Text style={styles.activityTime}>2 gun once</Text>
-                    </View>
-                </View>
-            </View>
+
 
             <View style={{ height: SIZES.xxxl }} />
         </ScrollView>
@@ -204,10 +202,28 @@ const styles = StyleSheet.create({
     header: {
         alignItems: 'center',
         paddingVertical: SIZES.xxl,
+        paddingTop: Platform.OS === 'ios' ? SIZES.xxxl : SIZES.xxl,
         backgroundColor: COLORS.white,
         borderBottomLeftRadius: SIZES.radiusXxl,
         borderBottomRightRadius: SIZES.radiusXxl,
         ...SHADOWS.md,
+    },
+    backButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        alignSelf: 'flex-start',
+        marginLeft: SIZES.lg,
+        marginBottom: SIZES.md,
+        paddingVertical: SIZES.sm,
+        paddingHorizontal: SIZES.md,
+        backgroundColor: COLORS.primaryLight,
+        borderRadius: SIZES.radiusMd,
+        gap: SIZES.xs,
+    },
+    backButtonText: {
+        fontSize: SIZES.fontSm,
+        fontWeight: FONTS.semibold,
+        color: COLORS.primary,
     },
     kulupAvatar: {
         width: 80,

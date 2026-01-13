@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
     View,
     Text,
@@ -7,23 +7,58 @@ import {
     TouchableOpacity,
     RefreshControl,
     ActivityIndicator,
+    Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SIZES, FONTS, SHADOWS } from '../theme';
+import api from '../services/api';
 
 export default function EtkinliklerScreen() {
-    const [etkinlikler, setEtkinlikler] = useState([
-        { id: 1, baslik: 'Yazılım Workshop', kulup: 'Yazılım Kulübü', tarih: '15 Ocak', saat: '14:00', konum: 'A-101', durum: 'YAKIN' },
-        { id: 2, baslik: 'Konser Gecesi', kulup: 'Müzik Kulübü', tarih: '20 Ocak', saat: '19:00', konum: 'Amfi Tiyatro', durum: 'YAKIN' },
-        { id: 3, baslik: 'Hackathon 2024', kulup: 'Yazılım Kulübü', tarih: '25 Ocak', saat: '09:00', konum: 'Konferans Salonu', durum: 'PLANLANDI' },
-        { id: 4, baslik: 'Fotoğraf Sergisi', kulup: 'Fotoğrafçılık', tarih: '30 Ocak', saat: '10:00', konum: 'Galeri', durum: 'PLANLANDI' },
-    ]);
+    const [etkinlikler, setEtkinlikler] = useState([]);
     const [refreshing, setRefreshing] = useState(false);
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        loadEtkinlikler();
+    }, []);
+
+    const loadEtkinlikler = async () => {
+        try {
+            const response = await api.get('/api/etkinlikler');
+            const data = response.data.map(e => ({
+                id: e.id,
+                baslik: e.baslik,
+                kulup: e.kulup?.ad || 'Bilinmiyor',
+                tarih: formatTarih(e.tarih),
+                saat: e.saat || '00:00',
+                konum: e.konum || 'Belirtilmedi',
+                durum: e.durum || 'PLANLANDI'
+            }));
+            setEtkinlikler(data);
+        } catch (error) {
+            console.log('API hatası:', error.message);
+            Alert.alert('Bağlantı Hatası', 'Etkinlikler yüklenemedi. Backend bağlantısını kontrol edin.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const formatTarih = (tarihStr) => {
+        if (!tarihStr) return 'Belirsiz';
+        const aylar = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
+            'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
+        const parts = tarihStr.split('-');
+        if (parts.length === 3) {
+            const gun = parseInt(parts[2]);
+            const ay = aylar[parseInt(parts[1]) - 1];
+            return `${gun} ${ay}`;
+        }
+        return tarihStr;
+    };
 
     const onRefresh = useCallback(() => {
         setRefreshing(true);
-        setTimeout(() => setRefreshing(false), 1000);
+        loadEtkinlikler().finally(() => setRefreshing(false));
     }, []);
 
     const getDurumStyle = (durum) => {

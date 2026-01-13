@@ -10,15 +10,20 @@ import {
     TextInput,
     Alert,
     ActivityIndicator,
+    Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SIZES, FONTS, SHADOWS } from '../theme';
+import api from '../services/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 export default function GorevYonetimScreen({ navigation }) {
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [gorevler, setGorevler] = useState([]);
     const [uyeler, setUyeler] = useState([]);
+    const [kulupId, setKulupId] = useState(null);
     const [modalVisible, setModalVisible] = useState(false);
     const [formData, setFormData] = useState({
         baslik: '',
@@ -26,6 +31,8 @@ export default function GorevYonetimScreen({ navigation }) {
         sonTarih: '',
         atananUye: null,
     });
+    const [showDatePicker, setShowDatePicker] = useState(false);
+    const [selectedDate, setSelectedDate] = useState(new Date());
 
     useEffect(() => {
         loadData();
@@ -34,18 +41,41 @@ export default function GorevYonetimScreen({ navigation }) {
     const loadData = async () => {
         setLoading(true);
         try {
-            setGorevler([
-                { id: 1, baslik: 'Poster Tasarimi', aciklama: 'Workshop icin poster hazirla', durum: 'BEKLIYOR', atanan: 'Ali Veli', sonTarih: '2024-03-18' },
-                { id: 2, baslik: 'Mekan Ayarlama', aciklama: 'Etkinlik icin salon rezervasyonu', durum: 'DEVAM_EDIYOR', atanan: 'Ayse Yilmaz', sonTarih: '2024-03-15' },
-                { id: 3, baslik: 'Sosyal Medya Paylasimi', aciklama: 'Etkinlik duyurusu yap', durum: 'TAMAMLANDI', atanan: 'Mehmet Kaya', sonTarih: '2024-03-10' },
-            ]);
-            setUyeler([
-                { id: 1, adSoyad: 'Ali Veli' },
-                { id: 2, adSoyad: 'Ayse Yilmaz' },
-                { id: 3, adSoyad: 'Mehmet Kaya' },
-            ]);
+            const storedKulupId = await AsyncStorage.getItem('baskanKulupId');
+            if (!storedKulupId) {
+                Alert.alert('Hata', 'Kulüp bilgisi bulunamadı');
+                return;
+            }
+            setKulupId(parseInt(storedKulupId));
+
+            // Üyeleri API'den çek
+            const uyeRes = await api.get(`/api/kulup/${storedKulupId}/uyeler`);
+            const uyeData = uyeRes.data.map(u => ({
+                id: u.id,
+                adSoyad: u.user?.adSoyad || 'Bilinmiyor'
+            }));
+            setUyeler(uyeData);
+
+            // Görevleri üyelerden topla
+            let tumGorevler = [];
+            for (const uye of uyeRes.data) {
+                try {
+                    const gorevRes = await api.get(`/api/uye/${uye.id}/gorevler`);
+                    const gorevData = gorevRes.data.map(g => ({
+                        id: g.id,
+                        baslik: g.baslik,
+                        aciklama: g.aciklama || '',
+                        durum: g.durum || 'BEKLEMEDE',
+                        atanan: uye.user?.adSoyad || 'Bilinmiyor',
+                        sonTarih: g.sonTarih || 'Belirtilmedi'
+                    }));
+                    tumGorevler = [...tumGorevler, ...gorevData];
+                } catch (e) { }
+            }
+            setGorevler(tumGorevler);
         } catch (error) {
-            Alert.alert('Hata', 'Veriler yuklenemedi');
+            console.log('Veri yükleme hatası:', error.message);
+            Alert.alert('Hata', 'Veriler yüklenemedi');
         } finally {
             setLoading(false);
         }
@@ -56,34 +86,45 @@ export default function GorevYonetimScreen({ navigation }) {
         loadData().finally(() => setRefreshing(false));
     };
 
-    const handleCreateGorev = () => {
-        if (!formData.baslik) {
-            Alert.alert('Hata', 'Baslik zorunludur');
+    const handleCreateGorev = async () => {
+        if (!formData.baslik || !formData.atananUye) {
+            Alert.alert('Hata', 'Başlık ve atanacak üye zorunludur');
             return;
         }
-        const newGorev = {
-            id: Date.now(),
-            baslik: formData.baslik,
-            aciklama: formData.aciklama,
-            sonTarih: formData.sonTarih || 'Belirtilmedi',
-            atanan: formData.atananUye?.adSoyad || 'Atanmadi',
-            durum: 'BEKLIYOR',
-        };
-        setGorevler(prev => [newGorev, ...prev]);
-        setModalVisible(false);
-        setFormData({ baslik: '', aciklama: '', sonTarih: '', atananUye: null });
-        Alert.alert('Basarili', 'Gorev olusturuldu');
+
+        try {
+            await api.post('/api/baskan/gorev-ekle', {
+                uyeId: formData.atananUye.id,
+                baslik: formData.baslik,
+                aciklama: formData.aciklama,
+                sonTarih: formData.sonTarih || new Date().toISOString().split('T')[0]
+            });
+
+            setModalVisible(false);
+            setFormData({ baslik: '', aciklama: '', sonTarih: '', atananUye: null });
+            Alert.alert('Başarılı', 'Görev oluşturuldu');
+            loadData();
+        } catch (error) {
+            Alert.alert('Hata', 'Görev oluşturulamadı');
+        }
     };
 
     const handleDeleteGorev = (gorev) => {
         Alert.alert(
             'Sil',
-            `"${gorev.baslik}" gorevini silmek istiyor musunuz?`,
+            `"${gorev.baslik}" görevini silmek istiyor musunuz?`,
             [
-                { text: 'Iptal', style: 'cancel' },
-                { text: 'Sil', style: 'destructive', onPress: () => {
-                    setGorevler(prev => prev.filter(g => g.id !== gorev.id));
-                }},
+                { text: 'İptal', style: 'cancel' },
+                {
+                    text: 'Sil', style: 'destructive', onPress: async () => {
+                        try {
+                            await api.delete(`/api/baskan/gorev/${gorev.id}`);
+                            loadData();
+                        } catch (error) {
+                            Alert.alert('Hata', 'Görev silinemedi');
+                        }
+                    }
+                },
             ]
         );
     };
@@ -191,13 +232,35 @@ export default function GorevYonetimScreen({ navigation }) {
 
                         <View style={styles.inputGroup}>
                             <Text style={styles.inputLabel}>Son Tarih</Text>
-                            <TextInput
-                                style={styles.input}
-                                placeholder="YYYY-MM-DD"
-                                value={formData.sonTarih}
-                                onChangeText={(text) => setFormData(prev => ({ ...prev, sonTarih: text }))}
-                            />
+                            <TouchableOpacity
+                                style={styles.dateButton}
+                                onPress={() => setShowDatePicker(true)}
+                            >
+                                <Ionicons name="calendar-outline" size={20} color={COLORS.gray500} />
+                                <Text style={styles.dateButtonText}>
+                                    {formData.sonTarih || 'Tarih Seç'}
+                                </Text>
+                            </TouchableOpacity>
                         </View>
+
+                        {showDatePicker && (
+                            <DateTimePicker
+                                value={selectedDate}
+                                mode="date"
+                                display="default"
+                                minimumDate={new Date()}
+                                onChange={(event, date) => {
+                                    setShowDatePicker(false);
+                                    if (date) {
+                                        setSelectedDate(date);
+                                        const year = date.getFullYear();
+                                        const month = String(date.getMonth() + 1).padStart(2, '0');
+                                        const day = String(date.getDate()).padStart(2, '0');
+                                        setFormData(prev => ({ ...prev, sonTarih: `${year}-${month}-${day}` }));
+                                    }
+                                }}
+                            />
+                        )}
 
                         <View style={styles.inputGroup}>
                             <Text style={styles.inputLabel}>Atanacak Uye</Text>
@@ -393,5 +456,20 @@ const styles = StyleSheet.create({
         fontSize: SIZES.fontMd,
         fontWeight: FONTS.bold,
         color: COLORS.white,
+    },
+    dateButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: COLORS.gray50,
+        borderRadius: SIZES.radiusMd,
+        borderWidth: 2,
+        borderColor: COLORS.gray200,
+        paddingHorizontal: SIZES.lg,
+        paddingVertical: SIZES.lg,
+        gap: SIZES.sm,
+    },
+    dateButtonText: {
+        fontSize: SIZES.fontMd,
+        color: COLORS.gray600,
     },
 });

@@ -1,25 +1,65 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
     View,
     Text,
     StyleSheet,
     FlatList,
     RefreshControl,
+    ActivityIndicator,
+    Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SIZES, FONTS, SHADOWS } from '../theme';
+import api from '../services/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function AidatlarimScreen() {
-    const [aidatlar, setAidatlar] = useState([
-        { id: 1, kulup: 'Yazılım Kulübü', donem: '2024 Bahar', tutar: 100, odendi: true, odemeTarihi: '15 Ocak 2024' },
-        { id: 2, kulup: 'Müzik Kulübü', donem: '2024 Bahar', tutar: 150, odendi: false, odemeTarihi: null },
-        { id: 3, kulup: 'Yazılım Kulübü', donem: '2023 Güz', tutar: 100, odendi: true, odemeTarihi: '10 Eylül 2023' },
-    ]);
+    const [aidatlar, setAidatlar] = useState([]);
     const [refreshing, setRefreshing] = useState(false);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        loadAidatlar();
+    }, []);
+
+    const loadAidatlar = async () => {
+        try {
+            const userId = await AsyncStorage.getItem('userId') || '1';
+            const response = await api.get(`/api/uye/${userId}/aidatlar`);
+            const data = response.data.map(a => ({
+                id: a.id,
+                kulup: a.kulup?.ad || 'Bilinmiyor',
+                donem: a.donem || 'Belirsiz',
+                tutar: parseFloat(a.tutar) || 0,
+                odendi: a.odendi === true,
+                odemeTarihi: a.odemeTarihi ? formatTarih(a.odemeTarihi) : null
+            }));
+            setAidatlar(data);
+        } catch (error) {
+            console.log('API hatası:', error.message);
+            Alert.alert('Bağlantı Hatası', 'Aidatlar yüklenemedi. Backend bağlantısını kontrol edin.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const formatTarih = (tarihStr) => {
+        if (!tarihStr) return null;
+        const aylar = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
+            'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
+        const parts = tarihStr.split('-');
+        if (parts.length === 3) {
+            const gun = parseInt(parts[2]);
+            const ay = aylar[parseInt(parts[1]) - 1];
+            const yil = parts[0];
+            return `${gun} ${ay} ${yil}`;
+        }
+        return tarihStr;
+    };
 
     const onRefresh = useCallback(() => {
         setRefreshing(true);
-        setTimeout(() => setRefreshing(false), 1000);
+        loadAidatlar().finally(() => setRefreshing(false));
     }, []);
 
     const toplamBorc = aidatlar.filter(a => !a.odendi).reduce((sum, a) => sum + a.tutar, 0);

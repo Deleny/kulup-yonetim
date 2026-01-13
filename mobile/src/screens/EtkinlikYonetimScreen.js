@@ -10,14 +10,19 @@ import {
     TextInput,
     Alert,
     ActivityIndicator,
+    Platform,
 } from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SIZES, FONTS, SHADOWS } from '../theme';
+import api from '../services/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function EtkinlikYonetimScreen({ navigation }) {
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [etkinlikler, setEtkinlikler] = useState([]);
+    const [kulupId, setKulupId] = useState(null);
     const [modalVisible, setModalVisible] = useState(false);
     const [formData, setFormData] = useState({
         baslik: '',
@@ -26,6 +31,11 @@ export default function EtkinlikYonetimScreen({ navigation }) {
         saat: '',
         konum: '',
     });
+    const [showDatePicker, setShowDatePicker] = useState(false);
+    const [dateMode, setDateMode] = useState('date');
+    const [selectedDate, setSelectedDate] = useState(new Date());
+    const [isGeneratingAi, setIsGeneratingAi] = useState(false);
+    const [kulupAd, setKulupAd] = useState('');
 
     useEffect(() => {
         loadData();
@@ -34,14 +44,19 @@ export default function EtkinlikYonetimScreen({ navigation }) {
     const loadData = async () => {
         setLoading(true);
         try {
-            // Demo data
-            setEtkinlikler([
-                { id: 1, baslik: 'Yazilim Workshop', tarih: '2024-03-20', saat: '14:00', konum: 'A101', durum: 'AKTIF' },
-                { id: 2, baslik: 'Hackathon 2024', tarih: '2024-04-15', saat: '09:00', konum: 'Konferans Salonu', durum: 'PLANLANDI' },
-                { id: 3, baslik: 'Git Egitimi', tarih: '2024-02-10', saat: '15:30', konum: 'B205', durum: 'TAMAMLANDI' },
-            ]);
+            const storedKulupId = await AsyncStorage.getItem('baskanKulupId');
+            if (!storedKulupId) {
+                Alert.alert('Hata', 'Kulüp bilgisi bulunamadı');
+                return;
+            }
+            setKulupId(parseInt(storedKulupId));
+
+            // Etkinlikleri API'den çek
+            const response = await api.get(`/api/kulup/${storedKulupId}/etkinlikler`);
+            setEtkinlikler(response.data || []);
         } catch (error) {
-            Alert.alert('Hata', 'Veriler yuklenemedi');
+            console.log('Veri yükleme hatası:', error.message);
+            Alert.alert('Hata', 'Veriler yüklenemedi. Backend bağlantısını kontrol edin.');
         } finally {
             setLoading(false);
         }
@@ -52,31 +67,98 @@ export default function EtkinlikYonetimScreen({ navigation }) {
         loadData().finally(() => setRefreshing(false));
     };
 
-    const handleCreateEtkinlik = () => {
+    const handleCreateEtkinlik = async () => {
         if (!formData.baslik || !formData.tarih) {
-            Alert.alert('Hata', 'Baslik ve tarih zorunludur');
+            Alert.alert('Hata', 'Başlık ve tarih zorunludur');
             return;
         }
-        const newEtkinlik = {
-            id: Date.now(),
-            ...formData,
-            durum: 'PLANLANDI',
-        };
-        setEtkinlikler(prev => [newEtkinlik, ...prev]);
-        setModalVisible(false);
-        setFormData({ baslik: '', aciklama: '', tarih: '', saat: '', konum: '' });
-        Alert.alert('Basarili', 'Etkinlik olusturuldu');
+
+        try {
+            await api.post('/api/baskan/etkinlik-ekle', {
+                kulupId,
+                baslik: formData.baslik,
+                aciklama: formData.aciklama,
+                tarih: formData.tarih,
+                saat: formData.saat || '00:00',
+                konum: formData.konum
+            });
+
+            setModalVisible(false);
+            setFormData({ baslik: '', aciklama: '', tarih: '', saat: '', konum: '' });
+            Alert.alert('Başarılı', 'Etkinlik oluşturuldu');
+            loadData();
+        } catch (error) {
+            console.log('Etkinlik oluşturma hatası:', error);
+            Alert.alert('Hata', 'Etkinlik oluşturulamadı. Lütfen tarih formatını ve internet bağlantınızı kontrol edin.');
+        }
+    };
+
+    const onDateChange = (event, selectedValue) => {
+        setShowDatePicker(Platform.OS === 'ios');
+        if (selectedValue) {
+            const currentDate = selectedValue;
+            setSelectedDate(currentDate);
+
+            if (dateMode === 'date') {
+                // YYYY-MM-DD formatı
+                const year = currentDate.getFullYear();
+                const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+                const day = String(currentDate.getDate()).padStart(2, '0');
+                setFormData(prev => ({ ...prev, tarih: `${year}-${month}-${day}` }));
+            } else {
+                // HH:MM formatı
+                const hours = String(currentDate.getHours()).padStart(2, '0');
+                const minutes = String(currentDate.getMinutes()).padStart(2, '0');
+                setFormData(prev => ({ ...prev, saat: `${hours}:${minutes}` }));
+            }
+        }
+    };
+
+    const showDateMode = (mode) => {
+        setDateMode(mode);
+        setShowDatePicker(true);
+    };
+
+    // AI ile etkinlik önerisi al
+    const generateAiSuggestion = async () => {
+        setIsGeneratingAi(true);
+        try {
+            const storedKulupAd = await AsyncStorage.getItem('baskanKulupAd') || 'Kulüp';
+            const response = await api.post('/ai/event-suggestion', {
+                clubName: storedKulupAd
+            });
+            if (response.data) {
+                setFormData(prev => ({
+                    ...prev,
+                    baslik: response.data.title || prev.baslik,
+                    aciklama: response.data.description || prev.aciklama,
+                    konum: response.data.location || prev.konum
+                }));
+            }
+        } catch (error) {
+            console.log('AI hatası:', error.message);
+            Alert.alert('AI Hatası', 'Etkinlik önerisi alınamadı.');
+        } finally {
+            setIsGeneratingAi(false);
+        }
     };
 
     const handleDeleteEtkinlik = (etkinlik) => {
         Alert.alert(
             'Sil',
-            `"${etkinlik.baslik}" etkinligini silmek istiyor musunuz?`,
+            `"${etkinlik.baslik}" etkinliğini silmek istiyor musunuz?`,
             [
-                { text: 'Iptal', style: 'cancel' },
-                { text: 'Sil', style: 'destructive', onPress: () => {
-                    setEtkinlikler(prev => prev.filter(e => e.id !== etkinlik.id));
-                }},
+                { text: 'İptal', style: 'cancel' },
+                {
+                    text: 'Sil', style: 'destructive', onPress: async () => {
+                        try {
+                            await api.delete(`/api/baskan/etkinlik/${etkinlik.id}`);
+                            loadData();
+                        } catch (error) {
+                            Alert.alert('Hata', 'Etkinlik silinemedi');
+                        }
+                    }
+                },
             ]
         );
     };
@@ -164,6 +246,21 @@ export default function EtkinlikYonetimScreen({ navigation }) {
                             </TouchableOpacity>
                         </View>
 
+                        <TouchableOpacity
+                            style={styles.aiButton}
+                            onPress={generateAiSuggestion}
+                            disabled={isGeneratingAi}
+                        >
+                            {isGeneratingAi ? (
+                                <ActivityIndicator size="small" color="#8b5cf6" />
+                            ) : (
+                                <>
+                                    <Ionicons name="sparkles" size={18} color="#8b5cf6" />
+                                    <Text style={styles.aiButtonText}>AI ile Etkinlik Önerisi Al</Text>
+                                </>
+                            )}
+                        </TouchableOpacity>
+
                         <View style={styles.inputGroup}>
                             <Text style={styles.inputLabel}>Baslik *</Text>
                             <TextInput
@@ -188,23 +285,38 @@ export default function EtkinlikYonetimScreen({ navigation }) {
                         <View style={styles.row}>
                             <View style={[styles.inputGroup, { flex: 1 }]}>
                                 <Text style={styles.inputLabel}>Tarih *</Text>
-                                <TextInput
+                                <TouchableOpacity
                                     style={styles.input}
-                                    placeholder="YYYY-MM-DD"
-                                    value={formData.tarih}
-                                    onChangeText={(text) => setFormData(prev => ({ ...prev, tarih: text }))}
-                                />
+                                    onPress={() => showDateMode('date')}
+                                >
+                                    <Text style={{ color: formData.tarih ? COLORS.text : COLORS.gray400, paddingTop: 4 }}>
+                                        {formData.tarih || 'YYYY-MM-DD'}
+                                    </Text>
+                                </TouchableOpacity>
                             </View>
                             <View style={[styles.inputGroup, { flex: 1, marginLeft: SIZES.md }]}>
                                 <Text style={styles.inputLabel}>Saat</Text>
-                                <TextInput
+                                <TouchableOpacity
                                     style={styles.input}
-                                    placeholder="HH:MM"
-                                    value={formData.saat}
-                                    onChangeText={(text) => setFormData(prev => ({ ...prev, saat: text }))}
-                                />
+                                    onPress={() => showDateMode('time')}
+                                >
+                                    <Text style={{ color: formData.saat ? COLORS.text : COLORS.gray400, paddingTop: 4 }}>
+                                        {formData.saat || 'HH:MM'}
+                                    </Text>
+                                </TouchableOpacity>
                             </View>
                         </View>
+
+                        {showDatePicker && (
+                            <DateTimePicker
+                                testID="dateTimePicker"
+                                value={selectedDate}
+                                mode={dateMode}
+                                is24Hour={true}
+                                display="default"
+                                onChange={onDateChange}
+                            />
+                        )}
 
                         <View style={styles.inputGroup}>
                             <Text style={styles.inputLabel}>Konum</Text>
@@ -390,5 +502,22 @@ const styles = StyleSheet.create({
         fontSize: SIZES.fontMd,
         fontWeight: FONTS.bold,
         color: COLORS.white,
+    },
+    aiButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: 'rgba(139, 92, 246, 0.1)',
+        borderRadius: SIZES.radiusMd,
+        borderWidth: 1,
+        borderColor: '#8b5cf6',
+        paddingVertical: SIZES.md,
+        gap: SIZES.sm,
+        marginBottom: SIZES.lg,
+    },
+    aiButtonText: {
+        fontSize: SIZES.fontSm,
+        fontWeight: FONTS.semibold,
+        color: '#8b5cf6',
     },
 });

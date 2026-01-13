@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     View,
     Text,
@@ -6,12 +6,89 @@ import {
     TouchableOpacity,
     ScrollView,
     Alert,
+    ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { COLORS, SIZES, FONTS, SHADOWS } from '../theme';
+import api from '../services/api';
 
 export default function ProfilScreen({ navigation }) {
+    const [loading, setLoading] = useState(true);
+    const [user, setUser] = useState({ adSoyad: '', email: '', rol: '' });
+    const [stats, setStats] = useState({ kulup: 0, gorev: 0, etkinlik: 0 });
+    const [isBaskan, setIsBaskan] = useState(false);
+    const [baskanKulupAd, setBaskanKulupAd] = useState('');
+
+    useEffect(() => {
+        loadProfile();
+    }, []);
+
+    // Ekran her açıldığında profil bilgilerini yenile
+    useEffect(() => {
+        const unsubscribe = navigation.addListener('focus', () => {
+            loadProfile();
+        });
+        return unsubscribe;
+    }, [navigation]);
+
+    const loadProfile = async () => {
+        setLoading(true);
+        try {
+            const userId = await AsyncStorage.getItem('userId');
+
+            if (userId) {
+                // Profil bilgilerini çek
+                const response = await api.get(`/api/profil/${userId}`);
+                const data = response.data;
+
+                setUser({
+                    adSoyad: data.adSoyad,
+                    email: data.email,
+                    rol: data.rol
+                });
+
+                setStats({
+                    kulup: data.uyelikSayisi,
+                    gorev: data.gorevSayisi,
+                    etkinlik: data.etkinlikSayisi
+                });
+
+                await AsyncStorage.setItem('adSoyad', data.adSoyad);
+                await AsyncStorage.setItem('userEmail', data.email);
+
+                // Backend'den başkanlık durumunu TAZE olarak kontrol et
+                try {
+                    const baskanRes = await api.get(`/api/user/${userId}/baskan-kulup`);
+                    if (baskanRes.data.baskan === true) {
+                        setIsBaskan(true);
+                        setBaskanKulupAd(baskanRes.data.kulupAd || '');
+                        await AsyncStorage.setItem('baskanKulupId', baskanRes.data.kulupId.toString());
+                        await AsyncStorage.setItem('baskanKulupAd', baskanRes.data.kulupAd || '');
+                    } else {
+                        // Başkan DEĞİL - temizle
+                        setIsBaskan(false);
+                        setBaskanKulupAd('');
+                        await AsyncStorage.removeItem('baskanKulupId');
+                        await AsyncStorage.removeItem('baskanKulupAd');
+                    }
+                } catch (e) {
+                    // API hatası - başkan değil kabul et
+                    setIsBaskan(false);
+                    setBaskanKulupAd('');
+                }
+            }
+        } catch (error) {
+            console.log('Profil yükleme hatası:', error.message);
+            const adSoyad = await AsyncStorage.getItem('adSoyad') || 'Kullanıcı';
+            const email = await AsyncStorage.getItem('userEmail') || '';
+            setUser({ adSoyad, email, rol: '' });
+            setIsBaskan(false);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const handleLogout = async () => {
         Alert.alert(
             'Çıkış Yap',
@@ -33,13 +110,25 @@ export default function ProfilScreen({ navigation }) {
         );
     };
 
-    const MenuItem = ({ icon, title, subtitle, onPress, danger, badge }) => (
+    const MenuItem = ({ icon, title, subtitle, onPress, danger, badge, highlight }) => (
         <TouchableOpacity style={styles.menuItem} onPress={onPress} activeOpacity={0.7}>
-            <View style={[styles.menuIcon, danger && styles.menuIconDanger]}>
-                <Ionicons name={icon} size={22} color={danger ? COLORS.error : COLORS.primary} />
+            <View style={[
+                styles.menuIcon,
+                danger && styles.menuIconDanger,
+                highlight && styles.menuIconHighlight
+            ]}>
+                <Ionicons
+                    name={icon}
+                    size={22}
+                    color={danger ? COLORS.error : highlight ? '#d97706' : COLORS.primary}
+                />
             </View>
             <View style={styles.menuContent}>
-                <Text style={[styles.menuTitle, danger && styles.menuTitleDanger]}>{title}</Text>
+                <Text style={[
+                    styles.menuTitle,
+                    danger && styles.menuTitleDanger,
+                    highlight && styles.menuTitleHighlight
+                ]}>{title}</Text>
                 {subtitle && <Text style={styles.menuSubtitle}>{subtitle}</Text>}
             </View>
             {badge && (
@@ -51,99 +140,159 @@ export default function ProfilScreen({ navigation }) {
         </TouchableOpacity>
     );
 
+    if (loading) {
+        return (
+            <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color={COLORS.primary} />
+            </View>
+        );
+    }
+
+    const initials = user.adSoyad.split(' ').map(n => n.charAt(0)).join('').substring(0, 2).toUpperCase() || 'KY';
+
     return (
-        <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-            {/* Profil Header */}
-            <View style={styles.header}>
-                <View style={styles.avatar}>
-                    <Text style={styles.avatarText}>KY</Text>
-                </View>
-                <Text style={styles.userName}>Kullanıcı Adı</Text>
-                <Text style={styles.userEmail}>kullanici@email.com</Text>
-                <TouchableOpacity style={styles.editButton}>
-                    <Ionicons name="pencil" size={16} color={COLORS.primary} />
-                    <Text style={styles.editButtonText}>Profili Düzenle</Text>
-                </TouchableOpacity>
-            </View>
-
-            {/* İstatistikler */}
-            <View style={styles.statsContainer}>
-                <View style={styles.statItem}>
-                    <View style={[styles.statIcon, { backgroundColor: COLORS.primaryLight }]}>
-                        <Ionicons name="people" size={20} color={COLORS.primary} />
+        <View style={styles.container}>
+            <ScrollView showsVerticalScrollIndicator={false}>
+                {/* Profil Header */}
+                <View style={styles.header}>
+                    <View style={styles.avatar}>
+                        <Text style={styles.avatarText}>{initials}</Text>
                     </View>
-                    <Text style={styles.statValue}>2</Text>
-                    <Text style={styles.statLabel}>Kulüp</Text>
+                    <Text style={styles.userName}>{user.adSoyad}</Text>
+                    <Text style={styles.userEmail}>{user.email}</Text>
+                    {isBaskan && (
+                        <View style={styles.baskanBadge}>
+                            <Ionicons name="shield-checkmark" size={14} color="#d97706" />
+                            <Text style={styles.baskanBadgeText}>Kulüp Başkanı</Text>
+                        </View>
+                    )}
+                    <TouchableOpacity
+                        style={styles.editButton}
+                        onPress={() => navigation.navigate('ProfilDuzenle')}
+                    >
+                        <Ionicons name="pencil" size={16} color={COLORS.primary} />
+                        <Text style={styles.editButtonText}>Profili Düzenle</Text>
+                    </TouchableOpacity>
                 </View>
-                <View style={styles.statDivider} />
-                <View style={styles.statItem}>
-                    <View style={[styles.statIcon, { backgroundColor: '#fef3c7' }]}>
-                        <Ionicons name="checkbox" size={20} color="#d97706" />
+
+                {/* İstatistikler */}
+                <View style={styles.statsContainer}>
+                    <View style={styles.statItem}>
+                        <View style={[styles.statIcon, { backgroundColor: COLORS.primaryLight }]}>
+                            <Ionicons name="people" size={20} color={COLORS.primary} />
+                        </View>
+                        <Text style={styles.statValue}>{stats.kulup}</Text>
+                        <Text style={styles.statLabel}>Kulüp</Text>
                     </View>
-                    <Text style={styles.statValue}>5</Text>
-                    <Text style={styles.statLabel}>Görev</Text>
-                </View>
-                <View style={styles.statDivider} />
-                <View style={styles.statItem}>
-                    <View style={[styles.statIcon, { backgroundColor: '#dcfce7' }]}>
-                        <Ionicons name="calendar" size={20} color="#16a34a" />
+                    <View style={styles.statDivider} />
+                    <View style={styles.statItem}>
+                        <View style={[styles.statIcon, { backgroundColor: '#fef3c7' }]}>
+                            <Ionicons name="checkbox" size={20} color="#d97706" />
+                        </View>
+                        <Text style={styles.statValue}>{stats.gorev}</Text>
+                        <Text style={styles.statLabel}>Görev</Text>
                     </View>
-                    <Text style={styles.statValue}>3</Text>
-                    <Text style={styles.statLabel}>Etkinlik</Text>
+                    <View style={styles.statDivider} />
+                    <View style={styles.statItem}>
+                        <View style={[styles.statIcon, { backgroundColor: '#dcfce7' }]}>
+                            <Ionicons name="calendar" size={20} color="#16a34a" />
+                        </View>
+                        <Text style={styles.statValue}>{stats.etkinlik}</Text>
+                        <Text style={styles.statLabel}>Etkinlik</Text>
+                    </View>
                 </View>
-            </View>
 
-            {/* Menü */}
-            <View style={styles.menuContainer}>
-                <Text style={styles.menuSectionTitle}>Hesap</Text>
-                <MenuItem
-                    icon="wallet-outline"
-                    title="Aidatlarım"
-                    subtitle="Aidat durumunu kontrol et"
-                    badge="1"
-                    onPress={() => navigation.navigate('Aidatlarim')}
-                />
-                <MenuItem
-                    icon="notifications-outline"
-                    title="Bildirimler"
-                    subtitle="Bildirim ayarlarını yönet"
-                />
-                <MenuItem
-                    icon="settings-outline"
-                    title="Ayarlar"
-                    subtitle="Uygulama ayarları"
-                />
-            </View>
+                {/* Başkan Menüsü */}
+                {isBaskan && (
+                    <View style={styles.menuContainer}>
+                        <Text style={styles.menuSectionTitle}>Kulüp Yönetimi</Text>
+                        <MenuItem
+                            icon="shield-outline"
+                            title="Başkan Paneli"
+                            subtitle={baskanKulupAd || 'Kulübünüzü yönetin'}
+                            onPress={() => navigation.navigate('BaskanMain')}
+                            highlight
+                        />
+                        <MenuItem
+                            icon="settings-outline"
+                            title="Kulüp Ayarları"
+                            subtitle="Kulüp bilgilerini düzenle"
+                            onPress={() => navigation.navigate('KulupAyarlari')}
+                            highlight
+                        />
+                    </View>
+                )}
 
-            <View style={styles.menuContainer}>
-                <Text style={styles.menuSectionTitle}>Destek</Text>
-                <MenuItem
-                    icon="help-circle-outline"
-                    title="Yardım"
-                    subtitle="SSS ve destek"
-                />
-                <MenuItem
-                    icon="information-circle-outline"
-                    title="Hakkında"
-                    subtitle="Uygulama bilgileri"
-                />
-            </View>
+                {/* Hesap Menüsü */}
+                <View style={styles.menuContainer}>
+                    <Text style={styles.menuSectionTitle}>Hesap</Text>
+                    <MenuItem
+                        icon="wallet-outline"
+                        title="Aidatlarım"
+                        subtitle="Aidat durumunu kontrol et"
+                        onPress={() => navigation.navigate('Aidatlarim')}
+                    />
+                    <MenuItem
+                        icon="notifications-outline"
+                        title="Bildirimler"
+                        subtitle="Bildirim ayarlarını yönet"
+                        onPress={() => navigation.navigate('Ayarlar')}
+                    />
+                    <MenuItem
+                        icon="settings-outline"
+                        title="Ayarlar"
+                        subtitle="Uygulama ayarları"
+                        onPress={() => navigation.navigate('Ayarlar')}
+                    />
+                </View>
 
-            <View style={[styles.menuContainer, { marginBottom: SIZES.xxxl }]}>
-                <MenuItem
-                    icon="log-out-outline"
-                    title="Çıkış Yap"
-                    onPress={handleLogout}
-                    danger
-                />
-            </View>
-        </ScrollView>
+                <View style={styles.menuContainer}>
+                    <Text style={styles.menuSectionTitle}>Destek</Text>
+                    <MenuItem
+                        icon="help-circle-outline"
+                        title="Yardım"
+                        subtitle="SSS ve destek"
+                        onPress={() => Alert.alert('Yardım', 'Destek için: destek@kulubyonetim.com')}
+                    />
+                    <MenuItem
+                        icon="information-circle-outline"
+                        title="Hakkında"
+                        subtitle="Uygulama bilgileri"
+                        onPress={() => Alert.alert('Kulüp Yönetimi', 'Versiyon 1.0.0\n\nKampüs Kulüp Takip Sistemi')}
+                    />
+                </View>
+
+                <View style={[styles.menuContainer, { marginBottom: SIZES.xxxl }]}>
+                    <MenuItem
+                        icon="log-out-outline"
+                        title="Çıkış Yap"
+                        onPress={handleLogout}
+                        danger
+                    />
+                </View>
+            </ScrollView>
+
+            {/* AI FAB - Sol Alt */}
+            <TouchableOpacity
+                style={styles.aiFab}
+                onPress={() => navigation.navigate('AiAsistan')}
+                activeOpacity={0.8}
+            >
+                <Ionicons name="sparkles" size={24} color={COLORS.white} />
+            </TouchableOpacity>
+        </View>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
+        backgroundColor: COLORS.background,
+    },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
         backgroundColor: COLORS.background,
     },
     header: {
@@ -178,6 +327,21 @@ const styles = StyleSheet.create({
         fontSize: SIZES.fontMd,
         color: COLORS.textSecondary,
         marginTop: SIZES.xs,
+    },
+    baskanBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#fef3c7',
+        paddingHorizontal: SIZES.md,
+        paddingVertical: SIZES.xs,
+        borderRadius: SIZES.radiusFull,
+        marginTop: SIZES.md,
+        gap: SIZES.xs,
+    },
+    baskanBadgeText: {
+        fontSize: SIZES.fontSm,
+        fontWeight: FONTS.semibold,
+        color: '#d97706',
     },
     editButton: {
         flexDirection: 'row',
@@ -264,6 +428,9 @@ const styles = StyleSheet.create({
     menuIconDanger: {
         backgroundColor: COLORS.errorLight,
     },
+    menuIconHighlight: {
+        backgroundColor: '#fef3c7',
+    },
     menuContent: {
         flex: 1,
         marginLeft: SIZES.md,
@@ -275,6 +442,9 @@ const styles = StyleSheet.create({
     },
     menuTitleDanger: {
         color: COLORS.error,
+    },
+    menuTitleHighlight: {
+        color: '#d97706',
     },
     menuSubtitle: {
         fontSize: SIZES.fontSm,
@@ -292,5 +462,21 @@ const styles = StyleSheet.create({
         fontSize: SIZES.fontXs,
         fontWeight: FONTS.bold,
         color: COLORS.white,
+    },
+    aiFab: {
+        position: 'absolute',
+        left: SIZES.lg,
+        bottom: 90,
+        width: 56,
+        height: 56,
+        borderRadius: 28,
+        backgroundColor: '#8b5cf6',
+        justifyContent: 'center',
+        alignItems: 'center',
+        elevation: 8,
+        shadowColor: '#8b5cf6',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
     },
 });

@@ -8,9 +8,12 @@ import {
     RefreshControl,
     Alert,
     ActivityIndicator,
+    Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SIZES, FONTS, SHADOWS } from '../theme';
+import api from '../services/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function UyeYonetimScreen({ navigation }) {
     const [loading, setLoading] = useState(true);
@@ -26,19 +29,27 @@ export default function UyeYonetimScreen({ navigation }) {
     const loadData = async () => {
         setLoading(true);
         try {
-            // Demo data
-            setUyeler([
-                { id: 1, adSoyad: 'Ali Veli', email: 'ali@email.com', pozisyon: 'Uye', katilimTarihi: '2024-01-15' },
-                { id: 2, adSoyad: 'Ayse Yilmaz', email: 'ayse@email.com', pozisyon: 'Yonetici', katilimTarihi: '2023-09-10' },
-                { id: 3, adSoyad: 'Mehmet Kaya', email: 'mehmet@email.com', pozisyon: 'Uye', katilimTarihi: '2024-02-20' },
-            ]);
-            setTalepler([
-                { id: 4, adSoyad: 'Zeynep Demir', email: 'zeynep@email.com', ogrenciNo: '20210045', talepTarihi: '2024-03-10' },
-                { id: 5, adSoyad: 'Can Ozturk', email: 'can@email.com', ogrenciNo: '20210078', talepTarihi: '2024-03-09' },
-                { id: 6, adSoyad: 'Elif Aksoy', email: 'elif@email.com', ogrenciNo: '20210156', talepTarihi: '2024-03-08' },
-            ]);
+            const kulupId = await AsyncStorage.getItem('baskanKulupId');
+            if (!kulupId) {
+                Alert.alert('Hata', 'Kulüp bilgisi bulunamadı');
+                return;
+            }
+
+            // Üyeleri API'den çek
+            const response = await api.get(`/api/kulup/${kulupId}/uyeler`);
+            const uyeData = response.data.map(u => ({
+                id: u.id,
+                adSoyad: u.user?.adSoyad || 'Bilinmiyor',
+                email: u.user?.email || '',
+                pozisyon: u.pozisyon || 'Uye',
+                katilimTarihi: u.kayitTarihi
+            }));
+            setUyeler(uyeData);
+            // Talepler için ayrı endpoint gerekebilir, şimdilik boş
+            setTalepler([]);
         } catch (error) {
-            Alert.alert('Hata', 'Veriler yuklenemedi');
+            console.log('Veri yükleme hatası:', error.message);
+            Alert.alert('Hata', 'Veriler yüklenemedi. Backend bağlantısını kontrol edin.');
         } finally {
             setLoading(false);
         }
@@ -55,10 +66,12 @@ export default function UyeYonetimScreen({ navigation }) {
             `${talep.adSoyad} uyelik talebini onaylamak istiyor musunuz?`,
             [
                 { text: 'Iptal', style: 'cancel' },
-                { text: 'Onayla', onPress: () => {
-                    setTalepler(prev => prev.filter(t => t.id !== talep.id));
-                    Alert.alert('Basarili', 'Uyelik talebi onaylandi');
-                }},
+                {
+                    text: 'Onayla', onPress: () => {
+                        setTalepler(prev => prev.filter(t => t.id !== talep.id));
+                        Alert.alert('Basarili', 'Uyelik talebi onaylandi');
+                    }
+                },
             ]
         );
     };
@@ -69,10 +82,12 @@ export default function UyeYonetimScreen({ navigation }) {
             `${talep.adSoyad} uyelik talebini reddetmek istiyor musunuz?`,
             [
                 { text: 'Iptal', style: 'cancel' },
-                { text: 'Reddet', style: 'destructive', onPress: () => {
-                    setTalepler(prev => prev.filter(t => t.id !== talep.id));
-                    Alert.alert('Bilgi', 'Uyelik talebi reddedildi');
-                }},
+                {
+                    text: 'Reddet', style: 'destructive', onPress: () => {
+                        setTalepler(prev => prev.filter(t => t.id !== talep.id));
+                        Alert.alert('Bilgi', 'Uyelik talebi reddedildi');
+                    }
+                },
             ]
         );
     };
@@ -83,9 +98,11 @@ export default function UyeYonetimScreen({ navigation }) {
             `${uye.adSoyad} kulupten cikarilsin mi?`,
             [
                 { text: 'Iptal', style: 'cancel' },
-                { text: 'Cikar', style: 'destructive', onPress: () => {
-                    setUyeler(prev => prev.filter(u => u.id !== uye.id));
-                }},
+                {
+                    text: 'Cikar', style: 'destructive', onPress: () => {
+                        setUyeler(prev => prev.filter(u => u.id !== uye.id));
+                    }
+                },
             ]
         );
     };
@@ -201,6 +218,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         backgroundColor: COLORS.white,
         padding: SIZES.sm,
+        paddingTop: Platform.OS === 'ios' ? SIZES.lg : SIZES.sm,
         ...SHADOWS.sm,
     },
     tab: {

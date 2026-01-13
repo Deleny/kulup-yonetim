@@ -10,15 +10,19 @@ import {
     TextInput,
     Alert,
     ActivityIndicator,
+    Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SIZES, FONTS, SHADOWS } from '../theme';
+import api from '../services/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function AidatYonetimScreen({ navigation }) {
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [activeTab, setActiveTab] = useState('tum');
     const [aidatlar, setAidatlar] = useState([]);
+    const [kulupId, setKulupId] = useState(null);
     const [modalVisible, setModalVisible] = useState(false);
     const [formData, setFormData] = useState({
         tutar: '',
@@ -37,20 +41,39 @@ export default function AidatYonetimScreen({ navigation }) {
     const loadData = async () => {
         setLoading(true);
         try {
-            const data = [
-                { id: 1, uye: 'Ali Veli', tutar: 100, donem: '2024 Bahar', odendi: true, odemeTarihi: '2024-02-15' },
-                { id: 2, uye: 'Ayse Yilmaz', tutar: 100, donem: '2024 Bahar', odendi: false },
-                { id: 3, uye: 'Mehmet Kaya', tutar: 100, donem: '2024 Bahar', odendi: true, odemeTarihi: '2024-02-10' },
-                { id: 4, uye: 'Zeynep Demir', tutar: 100, donem: '2024 Bahar', odendi: false },
-                { id: 5, uye: 'Can Ozturk', tutar: 100, donem: '2024 Bahar', odendi: false },
-            ];
-            setAidatlar(data);
-            
-            const odenen = data.filter(a => a.odendi).reduce((sum, a) => sum + a.tutar, 0);
-            const bekleyen = data.filter(a => !a.odendi).reduce((sum, a) => sum + a.tutar, 0);
-            setStats({ toplam: data.length * 100, odenen, bekleyen });
+            const storedKulupId = await AsyncStorage.getItem('baskanKulupId');
+            if (!storedKulupId) {
+                Alert.alert('Hata', 'Kulüp bilgisi bulunamadı');
+                return;
+            }
+            setKulupId(parseInt(storedKulupId));
+
+            // Üyeleri ve aidatlarını çek
+            const uyeRes = await api.get(`/api/kulup/${storedKulupId}/uyeler`);
+            let tumAidatlar = [];
+
+            for (const uye of uyeRes.data) {
+                try {
+                    const aidatRes = await api.get(`/api/uye/${uye.id}/aidatlar`);
+                    const aidatData = aidatRes.data.map(a => ({
+                        id: a.id,
+                        uye: uye.user?.adSoyad || 'Bilinmiyor',
+                        tutar: a.tutar || 0,
+                        donem: a.donem || '',
+                        odendi: a.odendi || false,
+                        odemeTarihi: a.odemeTarihi
+                    }));
+                    tumAidatlar = [...tumAidatlar, ...aidatData];
+                } catch (e) { }
+            }
+            setAidatlar(tumAidatlar);
+
+            const odenen = tumAidatlar.filter(a => a.odendi).reduce((sum, a) => sum + a.tutar, 0);
+            const bekleyen = tumAidatlar.filter(a => !a.odendi).reduce((sum, a) => sum + a.tutar, 0);
+            setStats({ toplam: odenen + bekleyen, odenen, bekleyen });
         } catch (error) {
-            Alert.alert('Hata', 'Veriler yuklenemedi');
+            console.log('Veri yükleme hatası:', error.message);
+            Alert.alert('Hata', 'Veriler yüklenemedi');
         } finally {
             setLoading(false);
         }
@@ -61,34 +84,54 @@ export default function AidatYonetimScreen({ navigation }) {
         loadData().finally(() => setRefreshing(false));
     };
 
-    const handleCreateAidat = () => {
+    const handleCreateAidat = async () => {
         if (!formData.tutar || !formData.donem) {
-            Alert.alert('Hata', 'Tutar ve donem zorunludur');
+            Alert.alert('Hata', 'Tutar ve dönem zorunludur');
             return;
         }
-        Alert.alert('Basarili', 'Aidat tum uyelere tanimlandi');
-        setModalVisible(false);
-        setFormData({ tutar: '', donem: '' });
+
+        try {
+            // Tüm üyelere aidat tanımla
+            const uyeRes = await api.get(`/api/kulup/${kulupId}/uyeler`);
+            for (const uye of uyeRes.data) {
+                await api.post('/api/baskan/aidat-ekle', {
+                    uyeId: uye.id,
+                    tutar: formData.tutar,
+                    donem: formData.donem
+                });
+            }
+            Alert.alert('Başarılı', 'Aidat tüm üyelere tanımlandı');
+            setModalVisible(false);
+            setFormData({ tutar: '', donem: '' });
+            loadData();
+        } catch (error) {
+            Alert.alert('Hata', 'Aidat tanımlanamadı');
+        }
     };
 
     const handleMarkPaid = (aidat) => {
         Alert.alert(
-            'Odendi Olarak Isaretle',
-            `${aidat.uye} icin ${aidat.tutar} TL odeme onaylansın mi?`,
+            'Ödendi Olarak İşaretle',
+            `${aidat.uye} için ${aidat.tutar} TL ödeme onaylansın mı?`,
             [
-                { text: 'Iptal', style: 'cancel' },
-                { text: 'Onayla', onPress: () => {
-                    setAidatlar(prev => prev.map(a => 
-                        a.id === aidat.id ? { ...a, odendi: true, odemeTarihi: new Date().toISOString().split('T')[0] } : a
-                    ));
-                }},
+                { text: 'İptal', style: 'cancel' },
+                {
+                    text: 'Onayla', onPress: async () => {
+                        try {
+                            await api.put(`/api/aidat/${aidat.id}/odeme`);
+                            loadData();
+                        } catch (error) {
+                            Alert.alert('Hata', 'Ödeme işaretlenemedi');
+                        }
+                    }
+                },
             ]
         );
     };
 
-    const filteredAidatlar = activeTab === 'tum' 
-        ? aidatlar 
-        : activeTab === 'odenen' 
+    const filteredAidatlar = activeTab === 'tum'
+        ? aidatlar
+        : activeTab === 'odenen'
             ? aidatlar.filter(a => a.odendi)
             : aidatlar.filter(a => !a.odendi);
 
