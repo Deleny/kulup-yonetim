@@ -87,7 +87,10 @@
                             <div class="avatar" th:text="${#strings.substring(uyelik.kulup.ad, 0, 1)}">K</div>
                             <div class="flex-grow-1">
                                 <h6 class="mb-0" th:text="${uyelik.kulup.ad}">Kulup Adi</h6>
-                                <small class="text-muted" th:text="${uyelik.pozisyon}">Pozisyon</small>
+                                <small class="text-muted" th:if="${uyelik.durum == 'ONAYLANDI'}"
+                                    th:text="${uyelik.pozisyon}">Pozisyon</small>
+                                <span class="badge bg-warning text-dark" th:if="${uyelik.durum == 'ONAY_BEKLIYOR'}">Onay
+                                    Bekliyor</span>
                             </div>
                             <form th:if="${uyelik.kulup.baskan == null or uyelik.kulup.baskan.id != user.id}"
                                 th:action="@{/panel/uyelik/{id}/ayril(id=${uyelik.id})}" method="post">
@@ -129,10 +132,18 @@
                             </span>
                             <!-- Zaten uye ise -->
                             <th:block th:unless="${kulup.baskan != null and kulup.baskan.id == user.id}">
-                                <span th:if="${#lists.contains(uyelikler.![kulup.id], kulup.id)}"
-                                    class="badge bg-success">
-                                    <i class="bi bi-check-lg me-1"></i>Uye
-                                </span>
+                                <th:block th:if="${#lists.contains(uyelikler.![kulup.id], kulup.id)}">
+                                    <!-- Find membership status -->
+                                    <span th:each="u : ${uyelikler}" th:if="${u.kulup.id == kulup.id}">
+                                        <span class="badge bg-success" th:if="${u.durum == 'ONAYLANDI'}">
+                                            <i class="bi bi-check-lg me-1"></i>Uye
+                                        </span>
+                                        <span class="badge bg-warning text-dark" th:if="${u.durum == 'ONAY_BEKLIYOR'}">
+                                            <i class="bi bi-clock me-1"></i>Bekliyor
+                                        </span>
+                                    </span>
+                                </th:block>
+
                                 <button th:unless="${#lists.contains(uyelikler.![kulup.id], kulup.id)}"
                                     class="btn btn-primary btn-sm" data-bs-toggle="modal"
                                     th:data-bs-target="'#katilModal' + ${kulup.id}">
