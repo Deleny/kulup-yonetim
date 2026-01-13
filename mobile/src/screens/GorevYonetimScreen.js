@@ -11,6 +11,8 @@ import {
     Alert,
     ActivityIndicator,
     Platform,
+    KeyboardAvoidingView,
+    ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SIZES, FONTS, SHADOWS } from '../theme';
@@ -86,6 +88,11 @@ export default function GorevYonetimScreen({ navigation }) {
         loadData().finally(() => setRefreshing(false));
     };
 
+    const closeModal = () => {
+        setModalVisible(false);
+        setShowDatePicker(false);
+    };
+
     const handleCreateGorev = async () => {
         if (!formData.baslik || !formData.atananUye) {
             Alert.alert('Hata', 'Başlık ve atanacak üye zorunludur');
@@ -100,7 +107,7 @@ export default function GorevYonetimScreen({ navigation }) {
                 sonTarih: formData.sonTarih || new Date().toISOString().split('T')[0]
             });
 
-            setModalVisible(false);
+            closeModal();
             setFormData({ baslik: '', aciklama: '', sonTarih: '', atananUye: null });
             Alert.alert('Başarılı', 'Görev oluşturuldu');
             loadData();
@@ -198,13 +205,22 @@ export default function GorevYonetimScreen({ navigation }) {
                 animationType="slide"
                 transparent={true}
                 visible={modalVisible}
-                onRequestClose={() => setModalVisible(false)}
+                onRequestClose={closeModal}
             >
                 <View style={styles.modalOverlay}>
-                    <View style={styles.modalContent}>
+                    <KeyboardAvoidingView
+                        style={styles.modalSheet}
+                        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                        keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 0}
+                    >
+                        <ScrollView
+                            contentContainerStyle={styles.modalFormContent}
+                            keyboardShouldPersistTaps="handled"
+                            showsVerticalScrollIndicator={false}
+                        >
                         <View style={styles.modalHeader}>
                             <Text style={styles.modalTitle}>Yeni Gorev</Text>
-                            <TouchableOpacity onPress={() => setModalVisible(false)}>
+                            <TouchableOpacity onPress={closeModal}>
                                 <Ionicons name="close" size={24} color={COLORS.gray500} />
                             </TouchableOpacity>
                         </View>
@@ -244,22 +260,25 @@ export default function GorevYonetimScreen({ navigation }) {
                         </View>
 
                         {showDatePicker && (
-                            <DateTimePicker
-                                value={selectedDate}
-                                mode="date"
-                                display="default"
-                                minimumDate={new Date()}
-                                onChange={(event, date) => {
-                                    setShowDatePicker(false);
-                                    if (date) {
-                                        setSelectedDate(date);
-                                        const year = date.getFullYear();
-                                        const month = String(date.getMonth() + 1).padStart(2, '0');
-                                        const day = String(date.getDate()).padStart(2, '0');
-                                        setFormData(prev => ({ ...prev, sonTarih: `${year}-${month}-${day}` }));
-                                    }
-                                }}
-                            />
+                            <View style={styles.datePickerWrapper}>
+                                <DateTimePicker
+                                    value={selectedDate}
+                                    mode="date"
+                                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                                    minimumDate={new Date()}
+                                    textColor={Platform.OS === 'ios' ? COLORS.text : undefined}
+                                    onChange={(event, date) => {
+                                        setShowDatePicker(false);
+                                        if (date) {
+                                            setSelectedDate(date);
+                                            const year = date.getFullYear();
+                                            const month = String(date.getMonth() + 1).padStart(2, '0');
+                                            const day = String(date.getDate()).padStart(2, '0');
+                                            setFormData(prev => ({ ...prev, sonTarih: `${year}-${month}-${day}` }));
+                                        }
+                                    }}
+                                />
+                            </View>
                         )}
 
                         <View style={styles.inputGroup}>
@@ -283,7 +302,8 @@ export default function GorevYonetimScreen({ navigation }) {
                             <Ionicons name="checkmark-circle" size={20} color={COLORS.white} />
                             <Text style={styles.submitButtonText}>Olustur</Text>
                         </TouchableOpacity>
-                    </View>
+                        </ScrollView>
+                    </KeyboardAvoidingView>
                 </View>
             </Modal>
         </View>
@@ -389,6 +409,18 @@ const styles = StyleSheet.create({
         padding: SIZES.xxl,
         paddingBottom: SIZES.xxxl,
     },
+    modalSheet: {
+        backgroundColor: COLORS.white,
+        borderTopLeftRadius: SIZES.radiusXxl,
+        borderTopRightRadius: SIZES.radiusXxl,
+        maxHeight: '90%',
+        width: '100%',
+    },
+    modalFormContent: {
+        padding: SIZES.xxl,
+        paddingBottom: SIZES.xxxl,
+        flexGrow: 1,
+    },
     modalHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
@@ -471,5 +503,13 @@ const styles = StyleSheet.create({
     dateButtonText: {
         fontSize: SIZES.fontMd,
         color: COLORS.gray600,
+    },
+    datePickerWrapper: {
+        backgroundColor: COLORS.gray50,
+        borderRadius: SIZES.radiusMd,
+        borderWidth: 2,
+        borderColor: COLORS.gray200,
+        paddingVertical: SIZES.sm,
+        marginBottom: SIZES.lg,
     },
 });

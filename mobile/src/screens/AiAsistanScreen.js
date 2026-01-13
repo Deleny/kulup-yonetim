@@ -44,9 +44,23 @@ export default function AiAsistanScreen() {
                 message: userMessage.text,
             });
 
+            console.log('AI Response:', JSON.stringify(response.data));
+
+            let replyText = '';
+            if (typeof response.data === 'string') {
+                const lowered = response.data.toLowerCase();
+                if (lowered.includes('<html') || lowered.includes('<!doctype')) {
+                    replyText = 'AI servisi giriş sayfasına yönleniyor. Backend tarafında /ai/** erişimini açın.';
+                } else {
+                    replyText = response.data;
+                }
+            } else {
+                replyText = response.data.reply || response.data.description || response.data.text || '';
+            }
+
             const botMessage = {
                 id: (Date.now() + 1).toString(),
-                text: response.data.reply || 'Üzgünüm, şu an yanıt veremedim.',
+                text: replyText || 'Üzgünüm, şu an yanıt veremedim.',
                 isBot: true,
             };
 

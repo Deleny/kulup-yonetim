@@ -11,11 +11,14 @@ import {
     Modal,
     TextInput,
     ScrollView,
+    Platform,
+    KeyboardAvoidingView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SIZES, FONTS, SHADOWS } from '../theme';
 import api from '../services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 export default function GorevlerimScreen() {
     const [gorevler, setGorevler] = useState([]);
@@ -29,6 +32,8 @@ export default function GorevlerimScreen() {
         sonTarih: '',
         hedefUye: null,
     });
+    const [showDatePicker, setShowDatePicker] = useState(false);
+    const [selectedDate, setSelectedDate] = useState(new Date());
 
     useEffect(() => {
         loadGorevler();
@@ -136,6 +141,22 @@ export default function GorevlerimScreen() {
         setModalVisible(true);
     };
 
+    const closeModal = () => {
+        setModalVisible(false);
+        setShowDatePicker(false);
+    };
+
+    const handleDateChange = (event, date) => {
+        if (Platform.OS === 'android') {
+            setShowDatePicker(false);
+        }
+        if (date) {
+            setSelectedDate(date);
+            const formatted = date.toISOString().split('T')[0];
+            setFormData(prev => ({ ...prev, sonTarih: formatted }));
+        }
+    };
+
     const handleCreateGorev = async () => {
         if (!formData.baslik || !formData.hedefUye) {
             Alert.alert('Hata', 'Başlık ve atanacak üye zorunludur');
@@ -152,7 +173,7 @@ export default function GorevlerimScreen() {
                 sonTarih: formData.sonTarih || null
             });
 
-            setModalVisible(false);
+            closeModal();
             setFormData({ baslik: '', aciklama: '', sonTarih: '', hedefUye: null });
             Alert.alert('Başarılı', 'Görev oluşturuldu');
             loadGorevler();
@@ -242,18 +263,26 @@ export default function GorevlerimScreen() {
                 animationType="slide"
                 transparent={true}
                 visible={modalVisible}
-                onRequestClose={() => setModalVisible(false)}
+                onRequestClose={closeModal}
             >
                 <View style={styles.modalOverlay}>
-                    <View style={styles.modalContent}>
-                        <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>Yeni Görev</Text>
-                            <TouchableOpacity onPress={() => setModalVisible(false)}>
-                                <Ionicons name="close" size={24} color={COLORS.gray500} />
-                            </TouchableOpacity>
-                        </View>
+                    <KeyboardAvoidingView
+                        style={styles.modalSheet}
+                        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                        keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 0}
+                    >
+                        <ScrollView
+                            contentContainerStyle={styles.modalFormContent}
+                            keyboardShouldPersistTaps="handled"
+                            showsVerticalScrollIndicator={false}
+                        >
+                            <View style={styles.modalHeader}>
+                                <Text style={styles.modalTitle}>Yeni Görev</Text>
+                                <TouchableOpacity onPress={closeModal}>
+                                    <Ionicons name="close" size={24} color={COLORS.gray500} />
+                                </TouchableOpacity>
+                            </View>
 
-                        <ScrollView showsVerticalScrollIndicator={false}>
                             <View style={styles.inputGroup}>
                                 <Text style={styles.inputLabel}>Başlık *</Text>
                                 <TextInput
@@ -279,14 +308,27 @@ export default function GorevlerimScreen() {
 
                             <View style={styles.inputGroup}>
                                 <Text style={styles.inputLabel}>Son Tarih</Text>
-                                <TextInput
+                                <TouchableOpacity
                                     style={styles.input}
-                                    placeholder="YYYY-MM-DD"
-                                    placeholderTextColor={COLORS.gray400}
-                                    value={formData.sonTarih}
-                                    onChangeText={(text) => setFormData(prev => ({ ...prev, sonTarih: text }))}
-                                />
+                                    onPress={() => setShowDatePicker(true)}
+                                >
+                                    <Text style={{ color: formData.sonTarih ? COLORS.text : COLORS.gray400 }}>
+                                        {formData.sonTarih || 'Tarih Seç'}
+                                    </Text>
+                                </TouchableOpacity>
                             </View>
+
+                            {showDatePicker && (
+                                <View style={styles.datePickerWrapper}>
+                                    <DateTimePicker
+                                        value={selectedDate}
+                                        mode="date"
+                                        display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                                        textColor={Platform.OS === 'ios' ? COLORS.text : undefined}
+                                        onChange={handleDateChange}
+                                    />
+                                </View>
+                            )}
 
                             <View style={styles.inputGroup}>
                                 <Text style={styles.inputLabel}>Atanacak Üye *</Text>
@@ -324,7 +366,7 @@ export default function GorevlerimScreen() {
                                 <Text style={styles.submitButtonText}>Görev Oluştur</Text>
                             </TouchableOpacity>
                         </ScrollView>
-                    </View>
+                    </KeyboardAvoidingView>
                 </View>
             </Modal>
         </View>
@@ -446,6 +488,18 @@ const styles = StyleSheet.create({
         paddingBottom: SIZES.xxxl,
         maxHeight: '80%',
     },
+    modalSheet: {
+        backgroundColor: COLORS.white,
+        borderTopLeftRadius: SIZES.radiusXxl,
+        borderTopRightRadius: SIZES.radiusXxl,
+        maxHeight: '90%',
+        width: '100%',
+    },
+    modalFormContent: {
+        padding: SIZES.xxl,
+        paddingBottom: SIZES.xxxl,
+        flexGrow: 1,
+    },
     modalHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
@@ -475,6 +529,14 @@ const styles = StyleSheet.create({
         paddingVertical: SIZES.md,
         fontSize: SIZES.fontMd,
         color: COLORS.text,
+    },
+    datePickerWrapper: {
+        backgroundColor: COLORS.gray50,
+        borderRadius: SIZES.radiusMd,
+        borderWidth: 2,
+        borderColor: COLORS.gray200,
+        paddingVertical: SIZES.sm,
+        marginBottom: SIZES.lg,
     },
     kulupSection: {
         marginBottom: SIZES.md,

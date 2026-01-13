@@ -11,6 +11,8 @@ import {
     Alert,
     ActivityIndicator,
     Platform,
+    KeyboardAvoidingView,
+    ScrollView,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
@@ -67,6 +69,11 @@ export default function EtkinlikYonetimScreen({ navigation }) {
         loadData().finally(() => setRefreshing(false));
     };
 
+    const closeModal = () => {
+        setModalVisible(false);
+        setShowDatePicker(false);
+    };
+
     const handleCreateEtkinlik = async () => {
         if (!formData.baslik || !formData.tarih) {
             Alert.alert('Hata', 'Başlık ve tarih zorunludur');
@@ -83,7 +90,7 @@ export default function EtkinlikYonetimScreen({ navigation }) {
                 konum: formData.konum
             });
 
-            setModalVisible(false);
+            closeModal();
             setFormData({ baslik: '', aciklama: '', tarih: '', saat: '', konum: '' });
             Alert.alert('Başarılı', 'Etkinlik oluşturuldu');
             loadData();
@@ -235,13 +242,22 @@ export default function EtkinlikYonetimScreen({ navigation }) {
                 animationType="slide"
                 transparent={true}
                 visible={modalVisible}
-                onRequestClose={() => setModalVisible(false)}
+                onRequestClose={closeModal}
             >
                 <View style={styles.modalOverlay}>
-                    <View style={styles.modalContent}>
+                    <KeyboardAvoidingView
+                        style={styles.modalSheet}
+                        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                        keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 0}
+                    >
+                        <ScrollView
+                            contentContainerStyle={styles.modalFormContent}
+                            keyboardShouldPersistTaps="handled"
+                            showsVerticalScrollIndicator={false}
+                        >
                         <View style={styles.modalHeader}>
                             <Text style={styles.modalTitle}>Yeni Etkinlik</Text>
-                            <TouchableOpacity onPress={() => setModalVisible(false)}>
+                            <TouchableOpacity onPress={closeModal}>
                                 <Ionicons name="close" size={24} color={COLORS.gray500} />
                             </TouchableOpacity>
                         </View>
@@ -308,14 +324,17 @@ export default function EtkinlikYonetimScreen({ navigation }) {
                         </View>
 
                         {showDatePicker && (
-                            <DateTimePicker
-                                testID="dateTimePicker"
-                                value={selectedDate}
-                                mode={dateMode}
-                                is24Hour={true}
-                                display="default"
-                                onChange={onDateChange}
-                            />
+                            <View style={styles.datePickerWrapper}>
+                                <DateTimePicker
+                                    testID="dateTimePicker"
+                                    value={selectedDate}
+                                    mode={dateMode}
+                                    is24Hour={true}
+                                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                                    textColor={Platform.OS === 'ios' ? COLORS.text : undefined}
+                                    onChange={onDateChange}
+                                />
+                            </View>
                         )}
 
                         <View style={styles.inputGroup}>
@@ -332,7 +351,8 @@ export default function EtkinlikYonetimScreen({ navigation }) {
                             <Ionicons name="checkmark-circle" size={20} color={COLORS.white} />
                             <Text style={styles.submitButtonText}>Olustur</Text>
                         </TouchableOpacity>
-                    </View>
+                        </ScrollView>
+                    </KeyboardAvoidingView>
                 </View>
             </Modal>
         </View>
@@ -454,6 +474,18 @@ const styles = StyleSheet.create({
         padding: SIZES.xxl,
         paddingBottom: SIZES.xxxl,
     },
+    modalSheet: {
+        backgroundColor: COLORS.white,
+        borderTopLeftRadius: SIZES.radiusXxl,
+        borderTopRightRadius: SIZES.radiusXxl,
+        maxHeight: '90%',
+        width: '100%',
+    },
+    modalFormContent: {
+        padding: SIZES.xxl,
+        paddingBottom: SIZES.xxxl,
+        flexGrow: 1,
+    },
     modalHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
@@ -486,6 +518,14 @@ const styles = StyleSheet.create({
     },
     row: {
         flexDirection: 'row',
+    },
+    datePickerWrapper: {
+        backgroundColor: COLORS.gray50,
+        borderRadius: SIZES.radiusMd,
+        borderWidth: 2,
+        borderColor: COLORS.gray200,
+        paddingVertical: SIZES.sm,
+        marginBottom: SIZES.lg,
     },
     submitButton: {
         flexDirection: 'row',

@@ -13,13 +13,19 @@
       "backgroundColor": "#6366f1"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSAppTransportSecurity": {
+          "NSAllowsArbitraryLoads": true
+        }
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#6366f1"
-      }
+      },
+      "usesCleartextTraffic": true
     },
     "web": {
       "favicon": "./assets/favicon.png"

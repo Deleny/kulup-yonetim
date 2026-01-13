@@ -480,16 +480,14 @@ export default function KuluplerimScreen({ navigation }) {
                 </View>
             </Modal>
 
-            {/* Kulüp Oluştur FAB Butonu - Sadece Başkan Olmayanlar Görebilir */}
-            {!isUserBaskan && (
-                <TouchableOpacity
-                    style={styles.fab}
-                    onPress={() => setCreateModalVisible(true)}
-                    activeOpacity={0.8}
-                >
-                    <Ionicons name="add" size={28} color={COLORS.white} />
-                </TouchableOpacity>
-            )}
+            {/* Kulüp Oluştur FAB Butonu */}
+            <TouchableOpacity
+                style={styles.fab}
+                onPress={() => setCreateModalVisible(true)}
+                activeOpacity={0.8}
+            >
+                <Ionicons name="add" size={28} color={COLORS.white} />
+            </TouchableOpacity>
         </View>
     );
 }

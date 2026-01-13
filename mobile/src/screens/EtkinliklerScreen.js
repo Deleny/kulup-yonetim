@@ -9,10 +9,16 @@ import {
     ActivityIndicator,
     Alert,
     Modal,
+    TextInput,
+    Platform,
+    KeyboardAvoidingView,
+    ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SIZES, FONTS, SHADOWS } from '../theme';
 import api from '../services/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 export default function EtkinliklerScreen() {
     const [etkinlikler, setEtkinlikler] = useState([]);
@@ -20,9 +26,23 @@ export default function EtkinliklerScreen() {
     const [loading, setLoading] = useState(true);
     const [modalVisible, setModalVisible] = useState(false);
     const [selectedEtkinlik, setSelectedEtkinlik] = useState(null);
+    const [isBaskan, setIsBaskan] = useState(false);
+    const [kulupId, setKulupId] = useState(null);
+    const [createModalVisible, setCreateModalVisible] = useState(false);
+    const [formData, setFormData] = useState({
+        baslik: '',
+        aciklama: '',
+        tarih: '',
+        saat: '',
+        konum: '',
+    });
+    const [showDatePicker, setShowDatePicker] = useState(false);
+    const [dateMode, setDateMode] = useState('date');
+    const [selectedDate, setSelectedDate] = useState(new Date());
 
     useEffect(() => {
         loadEtkinlikler();
+        checkBaskanStatus();
     }, []);
 
     const loadEtkinlikler = async () => {
@@ -44,6 +64,67 @@ export default function EtkinliklerScreen() {
             Alert.alert('Bağlantı Hatası', 'Etkinlikler yüklenemedi. Backend bağlantısını kontrol edin.');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const checkBaskanStatus = async () => {
+        try {
+            const userId = await AsyncStorage.getItem('userId');
+            if (!userId) return;
+
+            const response = await api.get(`/api/user/${userId}/baskan-kulup`);
+            if (response.data.baskan) {
+                setIsBaskan(true);
+                setKulupId(response.data.kulupId);
+            }
+        } catch (error) {
+            console.log('Başkan kontrolü hatası:', error.message);
+        }
+    };
+
+    const handleDateChange = (event, date) => {
+        if (Platform.OS === 'android') {
+            setShowDatePicker(false);
+        }
+        if (date) {
+            setSelectedDate(date);
+            if (dateMode === 'date') {
+                const formatted = date.toISOString().split('T')[0];
+                setFormData(prev => ({ ...prev, tarih: formatted }));
+            } else {
+                const hours = date.getHours().toString().padStart(2, '0');
+                const minutes = date.getMinutes().toString().padStart(2, '0');
+                setFormData(prev => ({ ...prev, saat: `${hours}:${minutes}` }));
+            }
+        }
+    };
+
+    const handleCreateEtkinlik = async () => {
+        if (!formData.baslik.trim()) {
+            Alert.alert('Hata', 'Etkinlik başlığı gereklidir');
+            return;
+        }
+        if (!formData.tarih) {
+            Alert.alert('Hata', 'Tarih seçiniz');
+            return;
+        }
+
+        try {
+            await api.post('/api/baskan/etkinlik-ekle', {
+                kulupId: kulupId,
+                baslik: formData.baslik.trim(),
+                aciklama: formData.aciklama.trim(),
+                tarih: formData.tarih,
+                saat: formData.saat || '00:00',
+                konum: formData.konum.trim() || 'Belirtilmedi',
+            });
+
+            Alert.alert('Başarılı', 'Etkinlik oluşturuldu!');
+            closeCreateModal();
+            setFormData({ baslik: '', aciklama: '', tarih: '', saat: '', konum: '' });
+            loadEtkinlikler();
+        } catch (error) {
+            Alert.alert('Hata', error.response?.data?.error || 'Etkinlik oluşturulamadı');
         }
     };
 
@@ -79,6 +160,11 @@ export default function EtkinliklerScreen() {
     const openEtkinlikDetail = (etkinlik) => {
         setSelectedEtkinlik(etkinlik);
         setModalVisible(true);
+    };
+
+    const closeCreateModal = () => {
+        setCreateModalVisible(false);
+        setShowDatePicker(false);
     };
 
     const handleIlgiGoster = () => {
@@ -201,6 +287,120 @@ export default function EtkinliklerScreen() {
                     </View>
                 </View>
             </Modal>
+
+            {/* Etkinlik Oluştur Modal */}
+            <Modal
+                animationType="slide"
+                transparent={true}
+                visible={createModalVisible}
+                onRequestClose={closeCreateModal}
+            >
+                <View style={styles.modalOverlay}>
+                    <KeyboardAvoidingView
+                        style={styles.modalSheet}
+                        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                        keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 0}
+                    >
+                        <ScrollView
+                            contentContainerStyle={styles.modalFormContent}
+                            keyboardShouldPersistTaps="handled"
+                            showsVerticalScrollIndicator={false}
+                        >
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>Yeni Etkinlik</Text>
+                            <TouchableOpacity onPress={closeCreateModal}>
+                                <Ionicons name="close" size={24} color={COLORS.gray500} />
+                            </TouchableOpacity>
+                        </View>
+
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.inputLabel}>Etkinlik Adı *</Text>
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Örn: Yazılım Semineri"
+                                value={formData.baslik}
+                                onChangeText={(text) => setFormData(prev => ({ ...prev, baslik: text }))}
+                            />
+                        </View>
+
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.inputLabel}>Açıklama</Text>
+                            <TextInput
+                                style={[styles.input, styles.textArea]}
+                                placeholder="Etkinlik hakkında bilgi..."
+                                value={formData.aciklama}
+                                onChangeText={(text) => setFormData(prev => ({ ...prev, aciklama: text }))}
+                                multiline
+                                numberOfLines={3}
+                            />
+                        </View>
+
+                        <View style={styles.inputRow}>
+                            <View style={[styles.inputGroup, { flex: 1 }]}>
+                                <Text style={styles.inputLabel}>Tarih *</Text>
+                                <TouchableOpacity
+                                    style={styles.input}
+                                    onPress={() => { setDateMode('date'); setShowDatePicker(true); }}
+                                >
+                                    <Text style={{ color: formData.tarih ? COLORS.text : COLORS.gray400 }}>
+                                        {formData.tarih || 'Tarih Seç'}
+                                    </Text>
+                                </TouchableOpacity>
+                            </View>
+                            <View style={[styles.inputGroup, { flex: 1, marginLeft: SIZES.md }]}>
+                                <Text style={styles.inputLabel}>Saat</Text>
+                                <TouchableOpacity
+                                    style={styles.input}
+                                    onPress={() => { setDateMode('time'); setShowDatePicker(true); }}
+                                >
+                                    <Text style={{ color: formData.saat ? COLORS.text : COLORS.gray400 }}>
+                                        {formData.saat || 'Saat Seç'}
+                                    </Text>
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+
+                        {showDatePicker && (
+                            <View style={styles.datePickerWrapper}>
+                                <DateTimePicker
+                                    value={selectedDate}
+                                    mode={dateMode}
+                                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                                    textColor={Platform.OS === 'ios' ? COLORS.text : undefined}
+                                    onChange={handleDateChange}
+                                />
+                            </View>
+                        )}
+
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.inputLabel}>Konum</Text>
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Örn: Konferans Salonu"
+                                value={formData.konum}
+                                onChangeText={(text) => setFormData(prev => ({ ...prev, konum: text }))}
+                            />
+                        </View>
+
+                        <TouchableOpacity style={styles.createButton} onPress={handleCreateEtkinlik}>
+                            <Ionicons name="add-circle" size={20} color={COLORS.white} />
+                            <Text style={styles.createButtonText}>Etkinlik Oluştur</Text>
+                        </TouchableOpacity>
+                    </ScrollView>
+                </KeyboardAvoidingView>
+            </View>
+            </Modal>
+
+            {/* FAB - Sadece Başkanlar için */}
+            {isBaskan && (
+                <TouchableOpacity
+                    style={styles.fab}
+                    onPress={() => setCreateModalVisible(true)}
+                    activeOpacity={0.8}
+                >
+                    <Ionicons name="add" size={28} color={COLORS.white} />
+                </TouchableOpacity>
+            )}
         </View>
     );
 }
@@ -315,6 +515,18 @@ const styles = StyleSheet.create({
         paddingBottom: SIZES.xxxl,
         alignItems: 'center',
     },
+    modalSheet: {
+        backgroundColor: COLORS.white,
+        borderTopLeftRadius: SIZES.radiusXxl,
+        borderTopRightRadius: SIZES.radiusXxl,
+        maxHeight: '90%',
+        width: '100%',
+    },
+    modalFormContent: {
+        padding: SIZES.xxl,
+        paddingBottom: SIZES.xxxl,
+        flexGrow: 1,
+    },
     modalHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
@@ -416,5 +628,71 @@ const styles = StyleSheet.create({
         fontSize: SIZES.fontMd,
         fontWeight: FONTS.bold,
         color: COLORS.white,
+    },
+    inputGroup: {
+        marginBottom: SIZES.md,
+        width: '100%',
+    },
+    inputLabel: {
+        fontSize: SIZES.fontSm,
+        fontWeight: FONTS.semibold,
+        color: COLORS.gray600,
+        marginBottom: SIZES.xs,
+    },
+    input: {
+        backgroundColor: COLORS.gray50,
+        borderRadius: SIZES.radiusMd,
+        borderWidth: 1,
+        borderColor: COLORS.gray200,
+        paddingHorizontal: SIZES.md,
+        paddingVertical: SIZES.md,
+        fontSize: SIZES.fontMd,
+        color: COLORS.text,
+    },
+    textArea: {
+        minHeight: 80,
+        textAlignVertical: 'top',
+    },
+    inputRow: {
+        flexDirection: 'row',
+        width: '100%',
+    },
+    datePickerWrapper: {
+        backgroundColor: COLORS.gray50,
+        borderRadius: SIZES.radiusMd,
+        borderWidth: 1,
+        borderColor: COLORS.gray200,
+        paddingVertical: SIZES.sm,
+        marginBottom: SIZES.md,
+    },
+    createButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: COLORS.primary,
+        borderRadius: SIZES.radiusMd,
+        paddingVertical: SIZES.lg,
+        gap: SIZES.sm,
+        width: '100%',
+        marginTop: SIZES.md,
+        ...SHADOWS.primary,
+    },
+    createButtonText: {
+        fontSize: SIZES.fontMd,
+        fontWeight: FONTS.bold,
+        color: COLORS.white,
+    },
+    fab: {
+        position: 'absolute',
+        right: SIZES.lg,
+        bottom: SIZES.xxl,
+        width: 56,
+        height: 56,
+        borderRadius: 28,
+        backgroundColor: COLORS.primary,
+        justifyContent: 'center',
+        alignItems: 'center',
+        ...SHADOWS.primary,
+        elevation: 8,
     },
 });

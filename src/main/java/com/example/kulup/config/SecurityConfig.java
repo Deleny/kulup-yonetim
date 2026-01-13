@@ -102,7 +102,7 @@ public class SecurityConfig {
                         // Herkese açık sayfalar
                         .requestMatchers("/", "/giris", "/kayit", "/css/**", "/js/**", "/images/**").permitAll()
                         .requestMatchers("/api/**").permitAll()
-                        .requestMatchers("/ai/**").authenticated()
+                        .requestMatchers("/ai/**").permitAll()
                         // Panel sayfaları - giriş yapmış kullanıcı gerekli
                         .requestMatchers("/panel/**").authenticated()
                         .requestMatchers("/cikis").authenticated()
