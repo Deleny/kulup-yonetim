@@ -1,6 +1,7 @@
 package com.example.kulup.model;
 
 import jakarta.persistence.*;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.util.List;
 
 @Entity
@@ -15,6 +16,7 @@ public class User {
     private String email;
 
     @Column(nullable = false)
+    @JsonIgnore
     private String sifre;
 
     @Column(nullable = false)
@@ -23,7 +25,12 @@ public class User {
     @Column(nullable = false)
     private String role = "UYE"; // ADMIN, BASKAN, UYE
 
+    // Expo Push Notification Token
+    @Column(name = "expo_push_token")
+    private String expoPushToken;
+
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    @JsonIgnore
     private List<Uye> uyelikler;
 
     public User() {
@@ -71,6 +78,14 @@ public class User {
 
     public void setRole(String role) {
         this.role = role;
+    }
+
+    public String getExpoPushToken() {
+        return expoPushToken;
+    }
+
+    public void setExpoPushToken(String expoPushToken) {
+        this.expoPushToken = expoPushToken;
     }
 
     public List<Uye> getUyelikler() {

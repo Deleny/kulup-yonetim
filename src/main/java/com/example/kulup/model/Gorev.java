@@ -1,6 +1,8 @@
 package com.example.kulup.model;
 
 import jakarta.persistence.*;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import java.time.LocalDate;
 
 @Entity
@@ -22,12 +24,14 @@ public class Gorev {
     @Column(nullable = false)
     private String durum = "BEKLEMEDE"; // BEKLEMEDE, DEVAM, TAMAMLANDI
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "uye_id", nullable = false)
+    @JsonIgnoreProperties({ "gorevler", "aidatlar", "kulup", "user", "hibernateLazyInitializer", "handler" })
     private Uye uye;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "etkinlik_id")
+    @JsonIgnoreProperties({ "gorevler", "kulup", "hibernateLazyInitializer", "handler" })
     private Etkinlik etkinlik;
 
     public Gorev() {

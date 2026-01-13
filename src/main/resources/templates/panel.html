@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="tr" xmlns:th="http://www.thymeleaf.org">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,6 +11,7 @@
     <link th:href="@{/css/style.css}" rel="stylesheet">
     <link th:href="@{/css/ai-assistant.css}" rel="stylesheet">
 </head>
+
 <body>
     <!-- Premium Navbar -->
     <nav class="navbar navbar-expand-lg navbar-light sticky-top mb-4">
@@ -26,7 +28,8 @@
                         <a class="nav-link active" href="/panel"><i class="bi bi-house me-1"></i>Panel</a>
                     </li>
                     <li class="nav-item" th:if="${user.role == 'BASKAN'}">
-                        <a class="nav-link" href="/baskan/panel"><i class="bi bi-person-badge me-1"></i>Baskan Paneli</a>
+                        <a class="nav-link" href="/baskan/panel"><i class="bi bi-person-badge me-1"></i>Baskan
+                            Paneli</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="/panel/gorevlerim"><i class="bi bi-list-check me-1"></i>Gorevlerim</a>
@@ -35,7 +38,8 @@
                         <a class="nav-link" href="/panel/aidatlarim"><i class="bi bi-wallet2 me-1"></i>Aidatlarim</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="/panel/etkinlikler"><i class="bi bi-calendar-event me-1"></i>Etkinlikler</a>
+                        <a class="nav-link" href="/panel/etkinlikler"><i
+                                class="bi bi-calendar-event me-1"></i>Etkinlikler</a>
                     </li>
                 </ul>
                 <div class="user-pill">
@@ -86,12 +90,14 @@
                                 <small class="text-muted" th:text="${uyelik.pozisyon}">Pozisyon</small>
                             </div>
                             <form th:if="${uyelik.kulup.baskan == null or uyelik.kulup.baskan.id != user.id}"
-                                  th:action="@{/panel/uyelik/{id}/ayril(id=${uyelik.id})}" method="post">
-                                <button class="btn btn-outline-danger btn-sm" onclick="return confirm('Ayrilmak istediginize emin misiniz?')">
+                                th:action="@{/panel/uyelik/{id}/ayril(id=${uyelik.id})}" method="post">
+                                <button class="btn btn-outline-danger btn-sm"
+                                    onclick="return confirm('Ayrilmak istediginize emin misiniz?')">
                                     <i class="bi bi-x-lg"></i>
                                 </button>
                             </form>
-                            <span th:if="${uyelik.kulup.baskan != null and uyelik.kulup.baskan.id == user.id}" class="text-muted">Baskan</span>
+                            <span th:if="${uyelik.kulup.baskan != null and uyelik.kulup.baskan.id == user.id}"
+                                class="text-muted">Baskan</span>
                         </div>
                         <div th:if="${#lists.isEmpty(uyelikler)}" class="text-center text-muted py-4">
                             <i class="bi bi-people-fill fs-1 d-block mb-2 opacity-25"></i>
@@ -113,12 +119,26 @@
                             <div class="avatar" th:text="${#strings.substring(kulup.ad, 0, 1)}">K</div>
                             <div class="flex-grow-1">
                                 <h6 class="mb-0" th:text="${kulup.ad}">Kulup Adi</h6>
-                                <small class="text-muted" th:text="${#strings.abbreviate(kulup.aciklama, 40)}">Aciklama</small>
+                                <small class="text-muted"
+                                    th:text="${#strings.abbreviate(kulup.aciklama, 40)}">Aciklama</small>
                             </div>
-                            <button class="btn btn-primary btn-sm" data-bs-toggle="modal" 
+                            <!-- Baskan kendi kulubune katilamaz -->
+                            <span th:if="${kulup.baskan != null and kulup.baskan.id == user.id}"
+                                class="badge bg-warning text-dark">
+                                <i class="bi bi-person-badge me-1"></i>Baskan
+                            </span>
+                            <!-- Zaten uye ise -->
+                            <th:block th:unless="${kulup.baskan != null and kulup.baskan.id == user.id}">
+                                <span th:if="${#lists.contains(uyelikler.![kulup.id], kulup.id)}"
+                                    class="badge bg-success">
+                                    <i class="bi bi-check-lg me-1"></i>Uye
+                                </span>
+                                <button th:unless="${#lists.contains(uyelikler.![kulup.id], kulup.id)}"
+                                    class="btn btn-primary btn-sm" data-bs-toggle="modal"
                                     th:data-bs-target="'#katilModal' + ${kulup.id}">
-                                <i class="bi bi-plus-lg me-1"></i>Katil
-                            </button>
+                                    <i class="bi bi-plus-lg me-1"></i>Katil
+                                </button>
+                            </th:block>
                         </div>
                         <div th:if="${#lists.isEmpty(aktifKulupler)}" class="text-center text-muted py-4">
                             <i class="bi bi-search fs-1 d-block mb-2 opacity-25"></i>
@@ -145,10 +165,13 @@
                     <div th:each="etkinlik : ${yaklasanEtkinlikler}" class="col-md-4">
                         <div class="event-card">
                             <h6 class="fw-semibold" th:text="${etkinlik.baslik}">Etkinlik</h6>
-                            <span class="badge bg-primary bg-opacity-10 text-primary mb-2" th:text="${etkinlik.kulup.ad}">Kulup</span>
+                            <span class="badge bg-primary bg-opacity-10 text-primary mb-2"
+                                th:text="${etkinlik.kulup.ad}">Kulup</span>
                             <div class="d-flex gap-3 small text-muted">
-                                <span><i class="bi bi-calendar3 me-1"></i><span th:text="${etkinlik.tarih}">Tarih</span></span>
-                                <span><i class="bi bi-geo-alt me-1"></i><span th:text="${etkinlik.konum}">Konum</span></span>
+                                <span><i class="bi bi-calendar3 me-1"></i><span
+                                        th:text="${etkinlik.tarih}">Tarih</span></span>
+                                <span><i class="bi bi-geo-alt me-1"></i><span
+                                        th:text="${etkinlik.konum}">Konum</span></span>
                             </div>
                         </div>
                     </div>
@@ -159,25 +182,27 @@
                 </div>
             </div>
         </div>
-    </div>
-
+    </div> <!-- Container Kapanışı -->
     <!-- Kulup Olustur Modal -->
     <div class="modal fade" id="kulupOlusturModal" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <form th:action="@{/panel/kulup-olustur}" method="post">
                     <div class="modal-header">
-                        <h5 class="modal-title"><i class="bi bi-plus-circle me-2 text-primary"></i>Kulup Olustur</h5>
+                        <h5 class="modal-title"><i class="bi bi-plus-circle me-2 text-primary"></i>Kulup Olustur
+                        </h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body">
-                        <div class="alert alert-info border-0 rounded-3 d-flex align-items-center gap-2" style="background: rgba(14, 165, 233, 0.1);">
+                        <div class="alert alert-info border-0 rounded-3 d-flex align-items-center gap-2"
+                            style="background: rgba(14, 165, 233, 0.1);">
                             <i class="bi bi-info-circle text-info"></i>
                             <span class="small">Kulubunuz admin onayindan sonra aktif olacaktir.</span>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Kulup Adi</label>
-                            <input type="text" name="ad" class="form-control" placeholder="Orn: Yazilim Kulubu" required>
+                            <input type="text" name="ad" class="form-control" placeholder="Orn: Yazilim Kulubu"
+                                required>
                         </div>
                         <div class="mb-3">
                             <div class="d-flex align-items-center justify-content-between mb-2">
@@ -186,7 +211,8 @@
                                     <i class="bi bi-stars me-1"></i>Aciklama Oner
                                 </button>
                             </div>
-                            <textarea name="aciklama" class="form-control" rows="3" placeholder="Kulubunuzu kisaca tanitin..." required></textarea>
+                            <textarea name="aciklama" class="form-control" rows="3"
+                                placeholder="Kulubunuzu kisaca tanitin..." required></textarea>
                         </div>
                     </div>
                     <div class="modal-footer">
@@ -216,7 +242,8 @@
                         <div class="modal-body">
                             <div class="mb-3">
                                 <label class="form-label">Ogrenci Numaraniz *</label>
-                                <input type="text" name="ogrenciNo" class="form-control" placeholder="Orn: 20210001" required>
+                                <input type="text" name="ogrenciNo" class="form-control" placeholder="Orn: 20210001"
+                                    required>
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Telefon (Istege bagli)</label>
@@ -258,4 +285,5 @@
     <script src="/js/ai-assistant.js"></script>
     <script src="/js/ai-suggestions.js"></script>
 </body>
+
 </html>

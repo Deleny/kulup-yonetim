@@ -1,6 +1,8 @@
 package com.example.kulup.model;
 
 import jakarta.persistence.*;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -23,17 +25,21 @@ public class Kulup {
     @Column(nullable = false)
     private Boolean aktif = false; // Admin onayı gerekli
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "baskan_id")
+    @JsonIgnoreProperties({ "uyelikler", "sifre", "hibernateLazyInitializer", "handler" })
     private User baskan;
 
     @OneToMany(mappedBy = "kulup", cascade = CascadeType.ALL)
+    @JsonIgnore
     private List<Uye> uyeler;
 
     @OneToMany(mappedBy = "kulup", cascade = CascadeType.ALL)
+    @JsonIgnore
     private List<Etkinlik> etkinlikler;
 
     @OneToMany(mappedBy = "kulup", cascade = CascadeType.ALL)
+    @JsonIgnore
     private List<Aidat> aidatlar;
 
     public Kulup() {

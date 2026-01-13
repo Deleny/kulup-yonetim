@@ -1,6 +1,8 @@
 package com.example.kulup.model;
 
 import jakarta.persistence.*;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
@@ -28,11 +30,13 @@ public class Etkinlik {
     @Column(nullable = false)
     private String durum = "AKTIF"; // AKTIF, TAMAMLANDI, IPTAL
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "kulup_id", nullable = false)
+    @JsonIgnoreProperties({ "uyeler", "etkinlikler", "aidatlar", "baskan", "hibernateLazyInitializer", "handler" })
     private Kulup kulup;
 
     @OneToMany(mappedBy = "etkinlik", cascade = CascadeType.ALL)
+    @JsonIgnore
     private List<Gorev> gorevler;
 
     public Etkinlik() {

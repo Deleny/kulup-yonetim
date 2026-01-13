@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="tr" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kulüp Ayarları - Başkan Panel</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        :root {
+            --sidebar-bg: #1e293b;
+            --primary: #6366f1;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: #f1f5f9;
+        }
+
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 260px;
+            height: 100vh;
+            background: var(--sidebar-bg);
+            padding: 1.5rem;
+            overflow-y: auto;
+        }
+
+        .sidebar-brand {
+            color: white;
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-bottom: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .sidebar-nav a {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1rem;
+            color: rgba(255, 255, 255, 0.7);
+            text-decoration: none;
+            border-radius: 8px;
+            margin-bottom: 0.25rem;
+        }
+
+        .sidebar-nav a:hover,
+        .sidebar-nav a.active {
+            background: #334155;
+            color: white;
+        }
+
+        .main-content {
+            margin-left: 260px;
+            padding: 2rem;
+        }
+
+        .form-card {
+            background: white;
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            border-radius: 50px;
+            font-weight: 500;
+        }
+
+        .status-active {
+            background: #dcfce7;
+            color: #16a34a;
+        }
+
+        .status-pending {
+            background: #fef3c7;
+            color: #d97706;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="sidebar-brand">
+            <i class="bi bi-person-badge" style="color: var(--primary);"></i>
+            Başkan Panel
+        </div>
+        <div class="text-white-50 small mb-3" th:text="${kulup?.ad}">Kulüp Adı</div>
+        <nav class="sidebar-nav">
+            <a href="/baskan/panel"><i class="bi bi-grid"></i> Genel</a>
+            <a href="/baskan/uyeler"><i class="bi bi-people"></i> Üyeler</a>
+            <a href="/baskan/etkinlikler"><i class="bi bi-calendar-event"></i> Etkinlikler</a>
+            <a href="/baskan/gorevler"><i class="bi bi-list-check"></i> Görevler</a>
+            <a href="/baskan/aidatlar"><i class="bi bi-cash-stack"></i> Aidatlar</a>
+            <a href="/baskan/kulup-ayarlari" class="active"><i class="bi bi-gear"></i> Kulüp Ayarları</a>
+            <a href="/panel"><i class="bi bi-house-door"></i> Ana Sayfa</a>
+            <a href="/cikis" style="color: #ef4444 !important;"><i class="bi bi-box-arrow-left"></i> Çıkış</a>
+        </nav>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <h4 class="mb-4">
+            <i class="bi bi-gear me-2"></i>Kulüp Ayarları
+        </h4>
+
+        <!-- Kulüp Bilgileri Formu -->
+        <div class="form-card mb-4">
+            <h5 class="mb-4">Kulüp Bilgileri</h5>
+            <form th:action="@{/baskan/kulup-guncelle}" method="post">
+                <div class="mb-3">
+                    <label class="form-label">Kulüp Adı</label>
+                    <input type="text" name="ad" class="form-control" th:value="${kulup.ad}" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Açıklama</label>
+                    <textarea name="aciklama" class="form-control" rows="4" th:text="${kulup.aciklama}"></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-check-circle me-2"></i>Kaydet
+                </button>
+            </form>
+        </div>
+
+        <!-- Kulüp Durumu -->
+        <div class="form-card mb-4">
+            <h5 class="mb-4">Kulüp Durumu</h5>
+            <div class="d-flex align-items-center gap-3">
+                <span th:if="${kulup.aktif}" class="status-badge status-active">
+                    <i class="bi bi-check-circle-fill"></i> Aktif
+                </span>
+                <span th:unless="${kulup.aktif}" class="status-badge status-pending">
+                    <i class="bi bi-hourglass-split"></i> Onay Bekliyor
+                </span>
+                <span class="text-muted" th:if="${kulup.aktif}">Kulübünüz aktif ve görünür durumda</span>
+                <span class="text-muted" th:unless="${kulup.aktif}">Admin onayı bekleniyor</span>
+            </div>
+        </div>
+
+        <!-- Başkan Bilgisi -->
+        <div class="form-card">
+            <h5 class="mb-4">Başkan Bilgisi</h5>
+            <div class="d-flex align-items-center gap-3">
+                <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center"
+                    style="width: 50px; height: 50px;">
+                    <i class="bi bi-person-fill"></i>
+                </div>
+                <div>
+                    <div class="fw-semibold" th:text="${kulup.baskan?.adSoyad}">Başkan Adı</div>
+                    <div class="text-muted small" th:text="${kulup.baskan?.email}">email@example.com</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>

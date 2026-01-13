@@ -43,17 +43,24 @@ public class BaskanController {
     private final AidatRepository aidatRepository;
 
     public BaskanController(UserRepository userRepository,
-                            KulupRepository kulupRepository,
-                            UyeRepository uyeRepository,
-                            EtkinlikRepository etkinlikRepository,
-                            GorevRepository gorevRepository,
-                            AidatRepository aidatRepository) {
+            KulupRepository kulupRepository,
+            UyeRepository uyeRepository,
+            EtkinlikRepository etkinlikRepository,
+            GorevRepository gorevRepository,
+            AidatRepository aidatRepository) {
         this.userRepository = userRepository;
         this.kulupRepository = kulupRepository;
         this.uyeRepository = uyeRepository;
         this.etkinlikRepository = etkinlikRepository;
         this.gorevRepository = gorevRepository;
         this.aidatRepository = aidatRepository;
+    }
+
+    private com.example.kulup.service.PushNotificationService pushNotificationService;
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public void setPushNotificationService(com.example.kulup.service.PushNotificationService pushNotificationService) {
+        this.pushNotificationService = pushNotificationService;
     }
 
     // Başkanın kulübünü bul
@@ -89,10 +96,39 @@ public class BaskanController {
         return "baskan-panel";
     }
 
+    // Kulüp Ayarları Sayfası
+    @GetMapping("/kulup-ayarlari")
+    public String kulupAyarlari(Authentication auth, Model model) {
+        Kulup kulup = getBaskanKulup(auth);
+        if (kulup == null) {
+            return "redirect:/giris";
+        }
+        model.addAttribute("kulup", kulup);
+        return "baskan-kulup-ayarlari";
+    }
+
+    // Kulüp Bilgilerini Güncelle
+    @PostMapping("/kulup-guncelle")
+    public String kulupGuncelle(Authentication auth,
+            @RequestParam String ad,
+            @RequestParam String aciklama) {
+        Kulup kulup = getBaskanKulup(auth);
+        if (kulup != null) {
+            if (ad != null && !ad.trim().isEmpty()) {
+                kulup.setAd(ad.trim());
+            }
+            if (aciklama != null) {
+                kulup.setAciklama(aciklama.trim());
+            }
+            kulupRepository.save(kulup);
+        }
+        return "redirect:/baskan/kulup-ayarlari";
+    }
+
     @GetMapping("/uyeler")
     public String baskanUyeler(Authentication auth,
-                               @RequestParam(defaultValue = "0") int uyePage,
-                               Model model) {
+            @RequestParam(defaultValue = "0") int uyePage,
+            Model model) {
         Kulup kulup = getBaskanKulup(auth);
         if (kulup == null) {
             return "redirect:/giris";
@@ -112,8 +148,8 @@ public class BaskanController {
 
     @GetMapping("/etkinlikler")
     public String baskanEtkinlikler(Authentication auth,
-                                    @RequestParam(defaultValue = "0") int etkinlikPage,
-                                    Model model) {
+            @RequestParam(defaultValue = "0") int etkinlikPage,
+            Model model) {
         Kulup kulup = getBaskanKulup(auth);
         if (kulup == null) {
             return "redirect:/giris";
@@ -132,8 +168,8 @@ public class BaskanController {
 
     @GetMapping("/gorevler")
     public String baskanGorevler(Authentication auth,
-                                 @RequestParam(defaultValue = "0") int gorevPage,
-                                 Model model) {
+            @RequestParam(defaultValue = "0") int gorevPage,
+            Model model) {
         Kulup kulup = getBaskanKulup(auth);
         if (kulup == null) {
             return "redirect:/giris";
@@ -154,8 +190,8 @@ public class BaskanController {
 
     @GetMapping("/aidatlar")
     public String baskanAidatlar(Authentication auth,
-                                 @RequestParam(defaultValue = "0") int aidatPage,
-                                 Model model) {
+            @RequestParam(defaultValue = "0") int aidatPage,
+            Model model) {
         Kulup kulup = getBaskanKulup(auth);
         if (kulup == null) {
             return "redirect:/giris";
@@ -172,16 +208,16 @@ public class BaskanController {
 
         return "baskan-aidatlar";
     }
-// --- Üye Yönetimi ---
-    
+    // --- Üye Yönetimi ---
+
     @PostMapping("/uye-ekle")
     public String uyeEkle(Authentication auth,
-                          @RequestParam Long userId,
-                          @RequestParam String ogrenciNo,
-                          @RequestParam(required = false) String telefon) {
+            @RequestParam Long userId,
+            @RequestParam String ogrenciNo,
+            @RequestParam(required = false) String telefon) {
         Kulup kulup = getBaskanKulup(auth);
         User user = userRepository.findById(userId).orElse(null);
-        
+
         if (kulup != null && user != null && !uyeRepository.existsByUserAndKulup(user, kulup)) {
             Uye uye = new Uye(ogrenciNo, telefon, user, kulup);
             uyeRepository.save(uye);
@@ -204,9 +240,9 @@ public class BaskanController {
         Kulup kulup = getBaskanKulup(auth);
         Uye uye = uyeRepository.findById(id).orElse(null);
         if (kulup != null && uye != null && uye.getKulup() != null
-            && kulup.getId().equals(uye.getKulup().getId())) {
+                && kulup.getId().equals(uye.getKulup().getId())) {
             if (kulup.getBaskan() != null && uye.getUser() != null
-                && kulup.getBaskan().getId().equals(uye.getUser().getId())) {
+                    && kulup.getBaskan().getId().equals(uye.getUser().getId())) {
                 return "redirect:/baskan/uyeler";
             }
             uyeRepository.deleteById(id);
@@ -215,25 +251,39 @@ public class BaskanController {
     }
 
     // --- Etkinlik Yönetimi ---
-    
+
     @PostMapping("/etkinlik-ekle")
     public String etkinlikEkle(Authentication auth,
-                               @RequestParam String baslik,
-                               @RequestParam String aciklama,
-                               @RequestParam String tarih,
-                               @RequestParam String saat,
-                               @RequestParam String konum) {
+            @RequestParam String baslik,
+            @RequestParam String aciklama,
+            @RequestParam String tarih,
+            @RequestParam String saat,
+            @RequestParam String konum) {
         Kulup kulup = getBaskanKulup(auth);
         if (kulup != null) {
-            Etkinlik etkinlik = new Etkinlik(
-                baslik, 
-                aciklama, 
-                LocalDate.parse(tarih), 
-                LocalTime.parse(saat), 
-                konum, 
-                kulup
-            );
-            etkinlikRepository.save(etkinlik);
+            try {
+                Etkinlik etkinlik = new Etkinlik(
+                        baslik,
+                        aciklama,
+                        LocalDate.parse(tarih),
+                        LocalTime.parse(saat),
+                        konum,
+                        kulup);
+                etkinlikRepository.save(etkinlik);
+
+                // Bildirim gönder
+                List<Uye> uyeler = uyeRepository.findByKulupId(kulup.getId());
+                for (Uye uye : uyeler) {
+                    if (uye.getUser() != null && uye.getUser().getExpoPushToken() != null) {
+                        pushNotificationService.sendEtkinlikBildirimi(
+                                uye.getUser().getExpoPushToken(),
+                                baslik,
+                                kulup.getAd());
+                    }
+                }
+            } catch (Exception e) {
+                System.out.println("Etkinlik ekleme hatası: " + e.getMessage());
+            }
         }
         return "redirect:/baskan/etkinlikler";
     }
@@ -255,22 +305,24 @@ public class BaskanController {
     }
 
     // --- Görev Yönetimi ---
-    
+
     @PostMapping("/gorev-ekle")
     public String gorevEkle(@RequestParam String baslik,
-                            @RequestParam String aciklama,
-                            @RequestParam String sonTarih,
-                            @RequestParam Long uyeId,
-                            @RequestParam(required = false) Long etkinlikId,
-                            Authentication auth) {
+            @RequestParam String aciklama,
+            @RequestParam String sonTarih,
+            @RequestParam Long uyeId,
+            @RequestParam(required = false) Long etkinlikId,
+            Authentication auth) {
         Kulup kulup = getBaskanKulup(auth);
         Uye uye = uyeRepository.findById(uyeId).orElse(null);
-        Etkinlik etkinlik = (etkinlikId != null && etkinlikId > 0) ? etkinlikRepository.findById(etkinlikId).orElse(null) : null;
-        
+        Etkinlik etkinlik = (etkinlikId != null && etkinlikId > 0)
+                ? etkinlikRepository.findById(etkinlikId).orElse(null)
+                : null;
+
         if (kulup != null && uye != null && uye.getKulup() != null
-            && kulup.getId().equals(uye.getKulup().getId())) {
+                && kulup.getId().equals(uye.getKulup().getId())) {
             if (etkinlik != null && etkinlik.getKulup() != null
-                && !kulup.getId().equals(etkinlik.getKulup().getId())) {
+                    && !kulup.getId().equals(etkinlik.getKulup().getId())) {
                 etkinlik = null;
             }
             Gorev gorev = new Gorev(baslik, aciklama, LocalDate.parse(sonTarih), uye, etkinlik);
@@ -296,17 +348,17 @@ public class BaskanController {
     }
 
     // --- Aidat Yönetimi ---
-    
+
     @PostMapping("/aidat-ekle")
     public String aidatEkle(Authentication auth,
-                            @RequestParam Long uyeId,
-                            @RequestParam String tutar,
-                            @RequestParam String donem) {
+            @RequestParam Long uyeId,
+            @RequestParam String tutar,
+            @RequestParam String donem) {
         Kulup kulup = getBaskanKulup(auth);
         Uye uye = uyeRepository.findById(uyeId).orElse(null);
-        
+
         if (kulup != null && uye != null && uye.getKulup() != null
-            && kulup.getId().equals(uye.getKulup().getId())) {
+                && kulup.getId().equals(uye.getKulup().getId())) {
             try {
                 String normalizedTutar = tutar.replace(",", ".");
                 Aidat aidat = new Aidat(new BigDecimal(normalizedTutar), donem, uye, kulup);
