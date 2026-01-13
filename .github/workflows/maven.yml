@@ -1,14 +1,11 @@
-name: CI - Maven Derleme Sureci
+name: CI/CD - Maven Build ve AWS EC2 Deployment
 
 on:
   push:
-    branches: [ "main", "dev" ]
-  pull_request:
     branches: [ "main" ]
 
 jobs:
-  build:
-    name: Proje Derleme ve Test
+  build-and-deploy:
     runs-on: ubuntu-latest
 
     services:
@@ -19,14 +16,10 @@ jobs:
           MYSQL_ROOT_PASSWORD: root
         ports:
           - 3306:3306
-        options: >-
-          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=10
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=10
 
     steps:
-      - name: Depoyu Kontrol Et
+      - name: Kodu Cek
         uses: actions/checkout@v4
 
       - name: JDK 17 Kurulumu
@@ -36,44 +29,27 @@ jobs:
           java-version: '17'
           cache: maven
 
-      - name: MySQL hazir olana kadar bekle
-        run: |
-          for i in {1..40}; do
-            if mysqladmin ping -h 127.0.0.1 -uroot -proot --silent; then
-              echo "MySQL hazir"
-              break
-            fi
-            echo "MySQL bekleniyor..."
-            sleep 3
-          done
+      - name: Maven ile Derle ve Test Et
+        run: mvn -B clean package
 
-      - name: Maven Test + Build
-        env:
-          SPRING_DATASOURCE_URL: jdbc:mysql://127.0.0.1:3306/kulup?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true&useUnicode=true&characterEncoding=utf8
-          SPRING_DATASOURCE_USERNAME: root
-          SPRING_DATASOURCE_PASSWORD: root
-          SPRING_JPA_HIBERNATE_DDL_AUTO: update
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-        run: mvn -B clean package -DskipTests
-
-      - name: JAR dosyasini EC2'ye kopyala
-        uses: appleboy/scp-action@master
+      - name: JAR Dosyasini EC2'ye Gonder
+        uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
-          source: "target/kulup-0.0.1-SNAPSHOT.jar"
-          target: "/home/ec2-user/"
+          source: "target/*.jar"
+          target: "/home/ec2-user/app"
           strip_components: 1
 
-      - name: EC2'de uygulamayi yeniden baslat
-        uses: appleboy/ssh-action@master
+      - name: Sunucuda Uygulamayi Baslat
+        uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            pkill -f kulup || true
-            cd /home/ec2-user
-            nohup java -jar kulup-0.0.1-SNAPSHOT.jar > app.log 2>&1 &
-            echo "Uygulama yeniden baslatildi!"
+            mkdir -p /home/ec2-user/app
+            sudo fuser -k 8080/tcp || true
+            cd /home/ec2-user/app
+            nohup java -jar *.jar > app.log 2>&1 &
