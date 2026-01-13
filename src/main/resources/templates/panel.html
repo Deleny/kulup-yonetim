@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="tr" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel - Kulup Yonetimi</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link th:href="@{/css/style.css}" rel="stylesheet">
+    <link th:href="@{/css/ai-assistant.css}" rel="stylesheet">
+</head>
+<body>
+    <!-- Premium Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-light sticky-top mb-4">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="bi bi-people-fill me-2"></i>Kulup Yonetimi
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/panel"><i class="bi bi-house me-1"></i>Panel</a>
+                    </li>
+                    <li class="nav-item" th:if="${user.role == 'BASKAN'}">
+                        <a class="nav-link" href="/baskan/panel"><i class="bi bi-person-badge me-1"></i>Baskan Paneli</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/panel/gorevlerim"><i class="bi bi-list-check me-1"></i>Gorevlerim</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/panel/aidatlarim"><i class="bi bi-wallet2 me-1"></i>Aidatlarim</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/panel/etkinlikler"><i class="bi bi-calendar-event me-1"></i>Etkinlikler</a>
+                    </li>
+                </ul>
+                <div class="user-pill">
+                    <div class="user-avatar" th:text="${#strings.substring(user.adSoyad, 0, 1)}">K</div>
+                    <span class="fw-medium" th:text="${user.adSoyad}">Kullanici</span>
+                    <a href="/cikis" class="btn btn-outline-danger btn-sm ms-2" title="Cikis Yap">
+                        <i class="bi bi-box-arrow-right"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container fade-in">
+        <!-- Quick Actions -->
+        <div class="row g-4 mb-4">
+            <div class="col-6 col-md-3" th:if="${user.role == 'BASKAN'}">
+                <a href="/baskan/panel" class="quick-action">
+                    <div class="icon" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b;">
+                        <i class="bi bi-person-badge"></i>
+                    </div>
+                    <h6>Baskan Paneli</h6>
+                </a>
+            </div>
+            <div class="col-6 col-md-3">
+                <a href="#" data-bs-toggle="modal" data-bs-target="#kulupOlusturModal" class="quick-action">
+                    <div class="icon" style="background: rgba(14, 165, 233, 0.1); color: #0ea5e9;">
+                        <i class="bi bi-plus-circle"></i>
+                    </div>
+                    <h6>Kulup Olustur</h6>
+                </a>
+            </div>
+        </div>
+
+        <div class="row g-4">
+            <!-- Uyeliklerim -->
+            <div class="col-lg-6" id="uyeliklerim">
+                <div class="card h-100">
+                    <div class="card-header d-flex align-items-center">
+                        <i class="bi bi-people me-2 text-primary"></i>
+                        <span>Uyeliklerim</span>
+                    </div>
+                    <div class="card-body">
+                        <div th:each="uyelik : ${uyelikler}" class="kulup-item">
+                            <div class="avatar" th:text="${#strings.substring(uyelik.kulup.ad, 0, 1)}">K</div>
+                            <div class="flex-grow-1">
+                                <h6 class="mb-0" th:text="${uyelik.kulup.ad}">Kulup Adi</h6>
+                                <small class="text-muted" th:text="${uyelik.pozisyon}">Pozisyon</small>
+                            </div>
+                            <form th:if="${uyelik.kulup.baskan == null or uyelik.kulup.baskan.id != user.id}"
+                                  th:action="@{/panel/uyelik/{id}/ayril(id=${uyelik.id})}" method="post">
+                                <button class="btn btn-outline-danger btn-sm" onclick="return confirm('Ayrilmak istediginize emin misiniz?')">
+                                    <i class="bi bi-x-lg"></i>
+                                </button>
+                            </form>
+                            <span th:if="${uyelik.kulup.baskan != null and uyelik.kulup.baskan.id == user.id}" class="text-muted">Baskan</span>
+                        </div>
+                        <div th:if="${#lists.isEmpty(uyelikler)}" class="text-center text-muted py-4">
+                            <i class="bi bi-people-fill fs-1 d-block mb-2 opacity-25"></i>
+                            Henuz bir kulube uye degilsiniz.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Kuluplere Katil -->
+            <div class="col-lg-6" id="kuluplere-katil">
+                <div class="card h-100">
+                    <div class="card-header d-flex align-items-center">
+                        <i class="bi bi-search me-2 text-primary"></i>
+                        <span>Kuluplere Katil</span>
+                    </div>
+                    <div class="card-body">
+                        <div th:each="kulup : ${aktifKulupler}" class="kulup-item">
+                            <div class="avatar" th:text="${#strings.substring(kulup.ad, 0, 1)}">K</div>
+                            <div class="flex-grow-1">
+                                <h6 class="mb-0" th:text="${kulup.ad}">Kulup Adi</h6>
+                                <small class="text-muted" th:text="${#strings.abbreviate(kulup.aciklama, 40)}">Aciklama</small>
+                            </div>
+                            <button class="btn btn-primary btn-sm" data-bs-toggle="modal" 
+                                    th:data-bs-target="'#katilModal' + ${kulup.id}">
+                                <i class="bi bi-plus-lg me-1"></i>Katil
+                            </button>
+                        </div>
+                        <div th:if="${#lists.isEmpty(aktifKulupler)}" class="text-center text-muted py-4">
+                            <i class="bi bi-search fs-1 d-block mb-2 opacity-25"></i>
+                            Aktif kulup bulunmuyor.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Yaklasan Etkinlikler -->
+        <div class="card mt-4 mb-5">
+            <div class="card-header d-flex align-items-center justify-content-between">
+                <div>
+                    <i class="bi bi-calendar-event me-2 text-primary"></i>
+                    <span>Yaklasan Etkinlikler</span>
+                </div>
+                <a href="/panel/etkinlikler" class="btn btn-sm btn-outline-primary">
+                    Tumunu Gor <i class="bi bi-arrow-right ms-1"></i>
+                </a>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div th:each="etkinlik : ${yaklasanEtkinlikler}" class="col-md-4">
+                        <div class="event-card">
+                            <h6 class="fw-semibold" th:text="${etkinlik.baslik}">Etkinlik</h6>
+                            <span class="badge bg-primary bg-opacity-10 text-primary mb-2" th:text="${etkinlik.kulup.ad}">Kulup</span>
+                            <div class="d-flex gap-3 small text-muted">
+                                <span><i class="bi bi-calendar3 me-1"></i><span th:text="${etkinlik.tarih}">Tarih</span></span>
+                                <span><i class="bi bi-geo-alt me-1"></i><span th:text="${etkinlik.konum}">Konum</span></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div th:if="${#lists.isEmpty(yaklasanEtkinlikler)}" class="text-center text-muted py-4">
+                    <i class="bi bi-calendar-x fs-1 d-block mb-2 opacity-25"></i>
+                    Yaklasan etkinlik bulunmuyor.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Kulup Olustur Modal -->
+    <div class="modal fade" id="kulupOlusturModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <form th:action="@{/panel/kulup-olustur}" method="post">
+                    <div class="modal-header">
+                        <h5 class="modal-title"><i class="bi bi-plus-circle me-2 text-primary"></i>Kulup Olustur</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="alert alert-info border-0 rounded-3 d-flex align-items-center gap-2" style="background: rgba(14, 165, 233, 0.1);">
+                            <i class="bi bi-info-circle text-info"></i>
+                            <span class="small">Kulubunuz admin onayindan sonra aktif olacaktir.</span>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Kulup Adi</label>
+                            <input type="text" name="ad" class="form-control" placeholder="Orn: Yazilim Kulubu" required>
+                        </div>
+                        <div class="mb-3">
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                <label class="form-label mb-0">Aciklama</label>
+                                <button type="button" class="btn btn-outline-primary btn-sm" id="clubDescSuggestBtn">
+                                    <i class="bi bi-stars me-1"></i>Aciklama Oner
+                                </button>
+                            </div>
+                            <textarea name="aciklama" class="form-control" rows="3" placeholder="Kulubunuzu kisaca tanitin..." required></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Iptal</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-lg me-1"></i>Olustur
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Katil Modals -->
+    <div th:each="kulup : ${aktifKulupler}">
+        <div class="modal fade" th:id="'katilModal' + ${kulup.id}" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <form th:action="@{/panel/kulup/{id}/katil(id=${kulup.id})}" method="post">
+                        <div class="modal-header">
+                            <h5 class="modal-title">
+                                <i class="bi bi-people-fill me-2 text-primary"></i>
+                                <span th:text="${kulup.ad + ' Kulubune Katil'}">Katil</span>
+                            </h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <label class="form-label">Ogrenci Numaraniz *</label>
+                                <input type="text" name="ogrenciNo" class="form-control" placeholder="Orn: 20210001" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Telefon (Istege bagli)</label>
+                                <input type="text" name="telefon" class="form-control" placeholder="05xx xxx xx xx">
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-light" data-bs-dismiss="modal">Iptal</button>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-lg me-1"></i>Katil
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="ai-assistant">
+        <button class="ai-toggle" type="button" aria-expanded="false">AI</button>
+        <div class="ai-panel">
+            <div class="ai-header">
+                <span>Yapay Zeka Asistani</span>
+                <button type="button" class="ai-close" aria-label="Kapat">&times;</button>
+            </div>
+            <div class="ai-messages">
+                <div class="ai-msg bot">Merhaba! Siteyle ilgili sorularini yanitlayabilirim.</div>
+            </div>
+            <form class="ai-form">
+                <div class="ai-input">
+                    <input type="text" class="ai-input-field" placeholder="Sorunu yaz..." autocomplete="off">
+                    <button type="submit">Gonder</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/ai-assistant.js"></script>
+    <script src="/js/ai-suggestions.js"></script>
+</body>
+</html>

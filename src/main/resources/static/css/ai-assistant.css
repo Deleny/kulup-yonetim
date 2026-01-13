@@ -1,0 +1,119 @@
+.ai-assistant {
+    position: fixed;
+    right: 24px;
+    bottom: 24px;
+    z-index: 9999;
+    font-family: 'Inter', system-ui, sans-serif;
+}
+
+.ai-toggle {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    border: none;
+    background: #6366f1;
+    color: #fff;
+    font-weight: 700;
+    box-shadow: 0 10px 30px rgba(99, 102, 241, 0.35);
+    cursor: pointer;
+}
+
+.ai-panel {
+    position: absolute;
+    right: 0;
+    bottom: 72px;
+    width: 320px;
+    max-height: 420px;
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 20px 60px rgba(15, 23, 42, 0.2);
+    display: none;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.ai-panel.open {
+    display: flex;
+}
+
+.ai-header {
+    padding: 12px 16px;
+    background: #6366f1;
+    color: #fff;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.ai-header button {
+    border: none;
+    background: transparent;
+    color: #fff;
+    font-size: 1.1rem;
+    cursor: pointer;
+}
+
+.ai-messages {
+    padding: 12px;
+    background: #f8fafc;
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.ai-msg {
+    padding: 8px 12px;
+    border-radius: 12px;
+    font-size: 0.875rem;
+    line-height: 1.4;
+    max-width: 80%;
+}
+
+.ai-msg.user {
+    align-self: flex-end;
+    background: #6366f1;
+    color: #fff;
+}
+
+.ai-msg.bot {
+    align-self: flex-start;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    color: #0f172a;
+}
+
+.ai-input {
+    display: flex;
+    gap: 8px;
+    padding: 10px;
+    border-top: 1px solid #e2e8f0;
+}
+
+.ai-input input {
+    flex: 1;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 8px 10px;
+    font-size: 0.875rem;
+    outline: none;
+}
+
+.ai-input button {
+    border: none;
+    background: #6366f1;
+    color: #fff;
+    border-radius: 10px;
+    padding: 8px 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+@media (max-width: 576px) {
+    .ai-panel {
+        width: 280px;
+        right: -4px;
+    }
+}

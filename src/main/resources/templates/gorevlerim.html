@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="tr" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gorevlerim - Kulup Yonetimi</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link th:href="@{/css/style.css}" rel="stylesheet">
+    <link th:href="@{/css/ai-assistant.css}" rel="stylesheet">
+</head>
+<body>
+    <!-- Page Header -->
+    <div class="page-header primary">
+        <div class="container">
+            <a href="/panel" class="back-btn mb-3 d-inline-flex">
+                <i class="bi bi-arrow-left"></i> Panele Don
+            </a>
+            <h2 class="mb-1"><i class="bi bi-list-check me-2"></i>Gorevlerim</h2>
+            <p class="mb-0 opacity-75">Atanan gorevlerinizi takip edin</p>
+        </div>
+    </div>
+
+    <div class="container fade-in mb-5">
+        <!-- Stats -->
+        <div class="row g-3 mb-4">
+            <div class="col-md-4">
+                <div class="card p-4 text-center">
+                    <div class="summary-icon status-bekliyor mx-auto mb-2"><i class="bi bi-clock"></i></div>
+                    <h3 class="mb-0" th:text="${bekleyenSayisi != null ? bekleyenSayisi : 0}">0</h3>
+                    <small class="text-muted">Bekleyen</small>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card p-4 text-center">
+                    <div class="summary-icon status-devam mx-auto mb-2"><i class="bi bi-play-circle"></i></div>
+                    <h3 class="mb-0" th:text="${devamEdenSayisi != null ? devamEdenSayisi : 0}">0</h3>
+                    <small class="text-muted">Devam Ediyor</small>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card p-4 text-center">
+                    <div class="summary-icon status-tamamlandi mx-auto mb-2"><i class="bi bi-check-circle"></i></div>
+                    <h3 class="mb-0" th:text="${tamamlananSayisi != null ? tamamlananSayisi : 0}">0</h3>
+                    <small class="text-muted">Tamamlanan</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gorev Listesi -->
+        <div class="card">
+            <div class="card-body p-4">
+                <div th:each="gorev : ${gorevler}" class="kulup-item">
+                    <div class="summary-icon" 
+                         th:classappend="${gorev.durum == 'BEKLEMEDE'} ? 'status-bekliyor' : (${gorev.durum == 'DEVAM'} ? 'status-devam' : 'status-tamamlandi')">
+                        <i th:class="${gorev.durum == 'BEKLEMEDE'} ? 'bi bi-clock' : (${gorev.durum == 'DEVAM'} ? 'bi bi-play-circle' : 'bi bi-check-circle')"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <h6 class="mb-1" th:text="${gorev.baslik}">Gorev Basligi</h6>
+                        <p class="text-muted small mb-2" th:text="${gorev.aciklama}">Aciklama</p>
+                        <div class="d-flex gap-2 flex-wrap">
+                            <span class="badge bg-primary bg-opacity-10 text-primary" th:text="${gorev.etkinlik != null && gorev.etkinlik.kulup != null ? gorev.etkinlik.kulup.ad : gorev.uye.kulup.ad}">Kulup</span>
+                            <span class="badge bg-secondary bg-opacity-10 text-secondary">
+                                <i class="bi bi-calendar3 me-1"></i>
+                                <span th:text="${gorev.sonTarih}">Tarih</span>
+                            </span>
+                        </div>
+                    </div>
+                    <form th:action="@{/panel/gorev/{id}/durum(id=${gorev.id})}" method="post">
+                        <select name="durum" class="form-select form-select-sm" onchange="this.form.submit()">
+                            <option value="BEKLEMEDE" th:selected="${gorev.durum == 'BEKLEMEDE'}">Beklemede</option>
+                            <option value="DEVAM" th:selected="${gorev.durum == 'DEVAM'}">Devam</option>
+                            <option value="TAMAMLANDI" th:selected="${gorev.durum == 'TAMAMLANDI'}">Tamamlandi</option>
+                        </select>
+                    </form>
+                </div>
+                
+                <div th:if="${#lists.isEmpty(gorevler)}" class="text-center text-muted py-5">
+                    <i class="bi bi-check-circle fs-1 d-block mb-3 opacity-25"></i>
+                    <p class="mb-0">Henuz atanmis gorev bulunmuyor.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="ai-assistant">
+        <button class="ai-toggle" type="button" aria-expanded="false">AI</button>
+        <div class="ai-panel">
+            <div class="ai-header">
+                <span>Yapay Zeka Asistani</span>
+                <button type="button" class="ai-close" aria-label="Kapat">&times;</button>
+            </div>
+            <div class="ai-messages">
+                <div class="ai-msg bot">Merhaba! Siteyle ilgili sorularini yanitlayabilirim.</div>
+            </div>
+            <form class="ai-form">
+                <div class="ai-input">
+                    <input type="text" class="ai-input-field" placeholder="Sorunu yaz..." autocomplete="off">
+                    <button type="submit">Gonder</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/ai-assistant.js"></script>
+</body>
+</html>

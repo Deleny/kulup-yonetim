@@ -1,0 +1,28 @@
+# Maven
+target/
+*.jar
+*.war
+
+# Eclipse
+.classpath
+.project
+.settings/
+
+# VS Code
+.vscode/
+
+# IDE
+*.iml
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node
+node_modules/
+.expo/
+*.lock
+
+# Logs
+*.log
