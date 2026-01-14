@@ -118,7 +118,8 @@
                         <span>Kuluplere Katil</span>
                     </div>
                     <div class="card-body">
-                        <div th:each="kulup : ${aktifKulupler}" class="kulup-item">
+                        <div th:each="kulup : ${aktifKulupler}" class="kulup-item"
+                            th:if="${kulup.baskan == null or kulup.baskan.id != user.id}">
                             <div class="avatar" th:text="${#strings.substring(kulup.ad, 0, 1)}">K</div>
                             <div class="flex-grow-1">
                                 <h6 class="mb-0" th:text="${kulup.ad}">Kulup Adi</h6>
