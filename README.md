@@ -20,6 +20,8 @@ MEHMET DELİN - YUSUF EREN SEYREK
 
 </div>
 
+
+
 ---
 
 ## 📋 Proje Hakkında
@@ -51,7 +53,7 @@ Kampüs Kulüp Yönetim Sistemi, üniversite kulüplerinin yönetimini kolaylaş
 ### ✅ Görev Yönetimi
 - Üyelere görev atama
 - Görev durumu takibi
-- Tamamlanma bildirimleri
+- Tamamlanma bildirimlerii
 
 ### 🤖 AI Asistan
 - Akıllı yardımcı asistan
