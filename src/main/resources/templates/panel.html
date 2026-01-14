@@ -87,8 +87,12 @@
                             <div class="avatar" th:text="${#strings.substring(uyelik.kulup.ad, 0, 1)}">K</div>
                             <div class="flex-grow-1">
                                 <h6 class="mb-0" th:text="${uyelik.kulup.ad}">Kulup Adi</h6>
-                                <small class="text-muted" th:if="${uyelik.durum == 'ONAYLANDI'}"
-                                    th:text="${uyelik.pozisyon}">Pozisyon</small>
+                                <small th:if="${uyelik.durum == 'ONAYLANDI'}">
+                                    <span class="badge bg-success bg-opacity-10 text-success">
+                                        <i class="bi bi-person-check me-1"></i>
+                                        <span th:text="${uyelik.pozisyon}">Pozisyon</span>
+                                    </span>
+                                </small>
                                 <span class="badge bg-warning text-dark" th:if="${uyelik.durum == 'ONAY_BEKLIYOR'}">Onay
                                     Bekliyor</span>
                             </div>
@@ -100,7 +104,9 @@
                                 </button>
                             </form>
                             <span th:if="${uyelik.kulup.baskan != null and uyelik.kulup.baskan.id == user.id}"
-                                class="text-muted">Baskan</span>
+                                class="badge bg-warning text-dark">
+                                <i class="bi bi-shield-fill me-1"></i>Baskan
+                            </span>
                         </div>
                         <div th:if="${#lists.isEmpty(uyelikler)}" class="text-center text-muted py-4">
                             <i class="bi bi-people-fill fs-1 d-block mb-2 opacity-25"></i>
@@ -120,11 +126,14 @@
                     <div class="card-body">
                         <div th:each="kulup : ${aktifKulupler}" class="kulup-item"
                             th:if="${kulup.baskan == null or kulup.baskan.id != user.id}">
-                            <div class="avatar" th:text="${#strings.substring(kulup.ad, 0, 1)}">K</div>
-                            <div class="flex-grow-1">
-                                <h6 class="mb-0" th:text="${kulup.ad}">Kulup Adi</h6>
-                                <small class="text-muted"
-                                    th:text="${#strings.abbreviate(kulup.aciklama, 40)}">Aciklama</small>
+                            <div class="d-flex align-items-center flex-grow-1" style="cursor: pointer;"
+                                data-bs-toggle="modal" th:data-bs-target="'#detayModal' + ${kulup.id}">
+                                <div class="avatar me-3" th:text="${#strings.substring(kulup.ad, 0, 1)}">K</div>
+                                <div>
+                                    <h6 class="mb-0" th:text="${kulup.ad}">Kulup Adi</h6>
+                                    <small class="text-muted"
+                                        th:text="${#strings.abbreviate(kulup.aciklama, 40)}">Aciklama</small>
+                                </div>
                             </div>
                             <!-- Baskan kendi kulubune katilamaz -->
                             <span th:if="${kulup.baskan != null and kulup.baskan.id == user.id}"
@@ -269,6 +278,54 @@
                             </button>
                         </div>
                     </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Kulup Detay Modals -->
+    <div th:each="kulup : ${aktifKulupler}">
+        <div class="modal fade" th:id="'detayModal' + ${kulup.id}" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header border-0 pb-0">
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body text-center pt-0">
+                        <div class="avatar mx-auto mb-3" style="width: 80px; height: 80px; font-size: 2rem;"
+                            th:text="${#strings.substring(kulup.ad, 0, 1)}">K</div>
+                        <h4 class="fw-bold mb-2" th:text="${kulup.ad}">Kulup Adi</h4>
+
+                        <div class="d-flex justify-content-center gap-4 mb-4">
+                            <div class="text-center">
+                                <div class="h4 mb-0 text-primary"
+                                    th:text="${kulup.uyeler != null ? #lists.size(kulup.uyeler) : 0}">0</div>
+                                <small class="text-muted">Uye</small>
+                            </div>
+                            <div class="text-center">
+                                <div class="h4 mb-0 text-success"
+                                    th:text="${kulup.etkinlikler != null ? #lists.size(kulup.etkinlikler) : 0}">0</div>
+                                <small class="text-muted">Etkinlik</small>
+                            </div>
+                        </div>
+
+                        <div class="bg-light rounded-3 p-3 mb-4 text-start">
+                            <h6 class="text-muted small mb-2"><i class="bi bi-info-circle me-1"></i>Hakkinda</h6>
+                            <p class="mb-0" th:text="${kulup.aciklama ?: 'Bu kulup icin aciklama bulunmuyor.'}">Aciklama
+                            </p>
+                        </div>
+
+                        <!-- Eger zaten uye degilse Katıl butonu -->
+                        <button th:unless="${#lists.contains(uyelikler.![kulup.id], kulup.id)}"
+                            class="btn btn-primary w-100" data-bs-dismiss="modal" data-bs-toggle="modal"
+                            th:data-bs-target="'#katilModal' + ${kulup.id}">
+                            <i class="bi bi-person-plus me-2"></i>Kulube Katil
+                        </button>
+                        <span th:if="${#lists.contains(uyelikler.![kulup.id], kulup.id)}"
+                            class="badge bg-success fs-6 px-4 py-2">
+                            <i class="bi bi-check-circle me-1"></i>Zaten Uyesiniz
+                        </span>
+                    </div>
                 </div>
             </div>
         </div>
