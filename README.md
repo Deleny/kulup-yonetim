@@ -10,7 +10,7 @@
 
 **Üniversite kulüplerini kolayca yönetmek için modern bir çözüm!**
 
-YUSUF EREN SEYREK - MEHMET DELİN
+MEHMET DELİN - YUSUF EREN SEYREK
 
 [Özellikler](#-özellikler) •
 [Kurulum](#-kurulum) •
