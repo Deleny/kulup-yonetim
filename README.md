@@ -10,6 +10,8 @@
 
 **Üniversite kulüplerini kolayca yönetmek için modern bir çözüm!**
 
+YUSUF EREN SEYREK
+
 [Özellikler](#-özellikler) •
 [Kurulum](#-kurulum) •
 [Kullanım](#-kullanım) •
