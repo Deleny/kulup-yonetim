@@ -123,7 +123,7 @@ export default function AyarlarScreen({ navigation }) {
                 />
             </View>
 
-            <View style={{ height: SIZES.xxxl }} />
+            <View style={{ height: SIZES.xxxl + 60 }} />
         </ScrollView>
     );
 }

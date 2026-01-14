@@ -218,90 +218,90 @@ export default function GorevYonetimScreen({ navigation }) {
                             keyboardShouldPersistTaps="handled"
                             showsVerticalScrollIndicator={false}
                         >
-                        <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>Yeni Gorev</Text>
-                            <TouchableOpacity onPress={closeModal}>
-                                <Ionicons name="close" size={24} color={COLORS.gray500} />
-                            </TouchableOpacity>
-                        </View>
+                            <View style={styles.modalHeader}>
+                                <Text style={styles.modalTitle}>Yeni Gorev</Text>
+                                <TouchableOpacity onPress={closeModal}>
+                                    <Ionicons name="close" size={24} color={COLORS.gray500} />
+                                </TouchableOpacity>
+                            </View>
 
-                        <View style={styles.inputGroup}>
-                            <Text style={styles.inputLabel}>Baslik *</Text>
-                            <TextInput
-                                style={styles.input}
-                                placeholder="Gorev basligi"
-                                value={formData.baslik}
-                                onChangeText={(text) => setFormData(prev => ({ ...prev, baslik: text }))}
-                            />
-                        </View>
-
-                        <View style={styles.inputGroup}>
-                            <Text style={styles.inputLabel}>Aciklama</Text>
-                            <TextInput
-                                style={[styles.input, { height: 80, textAlignVertical: 'top' }]}
-                                placeholder="Gorev aciklamasi"
-                                value={formData.aciklama}
-                                onChangeText={(text) => setFormData(prev => ({ ...prev, aciklama: text }))}
-                                multiline
-                            />
-                        </View>
-
-                        <View style={styles.inputGroup}>
-                            <Text style={styles.inputLabel}>Son Tarih</Text>
-                            <TouchableOpacity
-                                style={styles.dateButton}
-                                onPress={() => setShowDatePicker(true)}
-                            >
-                                <Ionicons name="calendar-outline" size={20} color={COLORS.gray500} />
-                                <Text style={styles.dateButtonText}>
-                                    {formData.sonTarih || 'Tarih Seç'}
-                                </Text>
-                            </TouchableOpacity>
-                        </View>
-
-                        {showDatePicker && (
-                            <View style={styles.datePickerWrapper}>
-                                <DateTimePicker
-                                    value={selectedDate}
-                                    mode="date"
-                                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                                    minimumDate={new Date()}
-                                    textColor={Platform.OS === 'ios' ? COLORS.text : undefined}
-                                    onChange={(event, date) => {
-                                        setShowDatePicker(false);
-                                        if (date) {
-                                            setSelectedDate(date);
-                                            const year = date.getFullYear();
-                                            const month = String(date.getMonth() + 1).padStart(2, '0');
-                                            const day = String(date.getDate()).padStart(2, '0');
-                                            setFormData(prev => ({ ...prev, sonTarih: `${year}-${month}-${day}` }));
-                                        }
-                                    }}
+                            <View style={styles.inputGroup}>
+                                <Text style={styles.inputLabel}>Baslik *</Text>
+                                <TextInput
+                                    style={styles.input}
+                                    placeholder="Gorev basligi"
+                                    value={formData.baslik}
+                                    onChangeText={(text) => setFormData(prev => ({ ...prev, baslik: text }))}
                                 />
                             </View>
-                        )}
 
-                        <View style={styles.inputGroup}>
-                            <Text style={styles.inputLabel}>Atanacak Uye</Text>
-                            <View style={styles.uyeList}>
-                                {uyeler.map(uye => (
-                                    <TouchableOpacity
-                                        key={uye.id}
-                                        style={[styles.uyeChip, formData.atananUye?.id === uye.id && styles.uyeChipActive]}
-                                        onPress={() => setFormData(prev => ({ ...prev, atananUye: uye }))}
-                                    >
-                                        <Text style={[styles.uyeChipText, formData.atananUye?.id === uye.id && styles.uyeChipTextActive]}>
-                                            {uye.adSoyad}
-                                        </Text>
-                                    </TouchableOpacity>
-                                ))}
+                            <View style={styles.inputGroup}>
+                                <Text style={styles.inputLabel}>Aciklama</Text>
+                                <TextInput
+                                    style={[styles.input, { height: 80, textAlignVertical: 'top' }]}
+                                    placeholder="Gorev aciklamasi"
+                                    value={formData.aciklama}
+                                    onChangeText={(text) => setFormData(prev => ({ ...prev, aciklama: text }))}
+                                    multiline
+                                />
                             </View>
-                        </View>
 
-                        <TouchableOpacity style={styles.submitButton} onPress={handleCreateGorev}>
-                            <Ionicons name="checkmark-circle" size={20} color={COLORS.white} />
-                            <Text style={styles.submitButtonText}>Olustur</Text>
-                        </TouchableOpacity>
+                            <View style={styles.inputGroup}>
+                                <Text style={styles.inputLabel}>Son Tarih</Text>
+                                <TouchableOpacity
+                                    style={styles.dateButton}
+                                    onPress={() => setShowDatePicker(true)}
+                                >
+                                    <Ionicons name="calendar-outline" size={20} color={COLORS.gray500} />
+                                    <Text style={styles.dateButtonText}>
+                                        {formData.sonTarih || 'Tarih Seç'}
+                                    </Text>
+                                </TouchableOpacity>
+                            </View>
+
+                            {showDatePicker && (
+                                <View style={styles.datePickerWrapper}>
+                                    <DateTimePicker
+                                        value={selectedDate}
+                                        mode="date"
+                                        display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                                        minimumDate={new Date()}
+                                        textColor={Platform.OS === 'ios' ? COLORS.text : undefined}
+                                        onChange={(event, date) => {
+                                            setShowDatePicker(false);
+                                            if (date) {
+                                                setSelectedDate(date);
+                                                const year = date.getFullYear();
+                                                const month = String(date.getMonth() + 1).padStart(2, '0');
+                                                const day = String(date.getDate()).padStart(2, '0');
+                                                setFormData(prev => ({ ...prev, sonTarih: `${year}-${month}-${day}` }));
+                                            }
+                                        }}
+                                    />
+                                </View>
+                            )}
+
+                            <View style={styles.inputGroup}>
+                                <Text style={styles.inputLabel}>Atanacak Uye</Text>
+                                <View style={styles.uyeList}>
+                                    {uyeler.map(uye => (
+                                        <TouchableOpacity
+                                            key={uye.id}
+                                            style={[styles.uyeChip, formData.atananUye?.id === uye.id && styles.uyeChipActive]}
+                                            onPress={() => setFormData(prev => ({ ...prev, atananUye: uye }))}
+                                        >
+                                            <Text style={[styles.uyeChipText, formData.atananUye?.id === uye.id && styles.uyeChipTextActive]}>
+                                                {uye.adSoyad}
+                                            </Text>
+                                        </TouchableOpacity>
+                                    ))}
+                                </View>
+                            </View>
+
+                            <TouchableOpacity style={styles.submitButton} onPress={handleCreateGorev}>
+                                <Ionicons name="checkmark-circle" size={20} color={COLORS.white} />
+                                <Text style={styles.submitButtonText}>Olustur</Text>
+                            </TouchableOpacity>
                         </ScrollView>
                     </KeyboardAvoidingView>
                 </View>
@@ -407,7 +407,7 @@ const styles = StyleSheet.create({
         borderTopLeftRadius: SIZES.radiusXxl,
         borderTopRightRadius: SIZES.radiusXxl,
         padding: SIZES.xxl,
-        paddingBottom: SIZES.xxxl,
+        paddingBottom: SIZES.xxxl + 40,
     },
     modalSheet: {
         backgroundColor: COLORS.white,
@@ -418,7 +418,7 @@ const styles = StyleSheet.create({
     },
     modalFormContent: {
         padding: SIZES.xxl,
-        paddingBottom: SIZES.xxxl,
+        paddingBottom: SIZES.xxxl + 40,
         flexGrow: 1,
     },
     modalHeader: {

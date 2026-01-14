@@ -269,7 +269,7 @@ export default function GorevlerimScreen() {
                     <KeyboardAvoidingView
                         style={styles.modalSheet}
                         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                        keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 0}
+                        keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 40}
                     >
                         <ScrollView
                             contentContainerStyle={styles.modalFormContent}
@@ -485,7 +485,7 @@ const styles = StyleSheet.create({
         borderTopLeftRadius: SIZES.radiusXxl,
         borderTopRightRadius: SIZES.radiusXxl,
         padding: SIZES.xxl,
-        paddingBottom: SIZES.xxxl,
+        paddingBottom: SIZES.xxxl + 40,
         maxHeight: '80%',
     },
     modalSheet: {
@@ -497,7 +497,7 @@ const styles = StyleSheet.create({
     },
     modalFormContent: {
         padding: SIZES.xxl,
-        paddingBottom: SIZES.xxxl,
+        paddingBottom: SIZES.xxxl + 40,
         flexGrow: 1,
     },
     modalHeader: {

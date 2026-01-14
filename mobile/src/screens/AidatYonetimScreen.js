@@ -421,7 +421,7 @@ const styles = StyleSheet.create({
         borderTopLeftRadius: SIZES.radiusXxl,
         borderTopRightRadius: SIZES.radiusXxl,
         padding: SIZES.xxl,
-        paddingBottom: SIZES.xxxl,
+        paddingBottom: SIZES.xxxl + 40,
     },
     modalHeader: {
         flexDirection: 'row',

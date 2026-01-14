@@ -299,96 +299,96 @@ export default function EtkinliklerScreen() {
                     <KeyboardAvoidingView
                         style={styles.modalSheet}
                         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                        keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 0}
+                        keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 40}
                     >
                         <ScrollView
                             contentContainerStyle={styles.modalFormContent}
                             keyboardShouldPersistTaps="handled"
                             showsVerticalScrollIndicator={false}
                         >
-                        <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>Yeni Etkinlik</Text>
-                            <TouchableOpacity onPress={closeCreateModal}>
-                                <Ionicons name="close" size={24} color={COLORS.gray500} />
-                            </TouchableOpacity>
-                        </View>
-
-                        <View style={styles.inputGroup}>
-                            <Text style={styles.inputLabel}>Etkinlik Adı *</Text>
-                            <TextInput
-                                style={styles.input}
-                                placeholder="Örn: Yazılım Semineri"
-                                value={formData.baslik}
-                                onChangeText={(text) => setFormData(prev => ({ ...prev, baslik: text }))}
-                            />
-                        </View>
-
-                        <View style={styles.inputGroup}>
-                            <Text style={styles.inputLabel}>Açıklama</Text>
-                            <TextInput
-                                style={[styles.input, styles.textArea]}
-                                placeholder="Etkinlik hakkında bilgi..."
-                                value={formData.aciklama}
-                                onChangeText={(text) => setFormData(prev => ({ ...prev, aciklama: text }))}
-                                multiline
-                                numberOfLines={3}
-                            />
-                        </View>
-
-                        <View style={styles.inputRow}>
-                            <View style={[styles.inputGroup, { flex: 1 }]}>
-                                <Text style={styles.inputLabel}>Tarih *</Text>
-                                <TouchableOpacity
-                                    style={styles.input}
-                                    onPress={() => { setDateMode('date'); setShowDatePicker(true); }}
-                                >
-                                    <Text style={{ color: formData.tarih ? COLORS.text : COLORS.gray400 }}>
-                                        {formData.tarih || 'Tarih Seç'}
-                                    </Text>
+                            <View style={styles.modalHeader}>
+                                <Text style={styles.modalTitle}>Yeni Etkinlik</Text>
+                                <TouchableOpacity onPress={closeCreateModal}>
+                                    <Ionicons name="close" size={24} color={COLORS.gray500} />
                                 </TouchableOpacity>
                             </View>
-                            <View style={[styles.inputGroup, { flex: 1, marginLeft: SIZES.md }]}>
-                                <Text style={styles.inputLabel}>Saat</Text>
-                                <TouchableOpacity
-                                    style={styles.input}
-                                    onPress={() => { setDateMode('time'); setShowDatePicker(true); }}
-                                >
-                                    <Text style={{ color: formData.saat ? COLORS.text : COLORS.gray400 }}>
-                                        {formData.saat || 'Saat Seç'}
-                                    </Text>
-                                </TouchableOpacity>
-                            </View>
-                        </View>
 
-                        {showDatePicker && (
-                            <View style={styles.datePickerWrapper}>
-                                <DateTimePicker
-                                    value={selectedDate}
-                                    mode={dateMode}
-                                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                                    textColor={Platform.OS === 'ios' ? COLORS.text : undefined}
-                                    onChange={handleDateChange}
+                            <View style={styles.inputGroup}>
+                                <Text style={styles.inputLabel}>Etkinlik Adı *</Text>
+                                <TextInput
+                                    style={styles.input}
+                                    placeholder="Örn: Yazılım Semineri"
+                                    value={formData.baslik}
+                                    onChangeText={(text) => setFormData(prev => ({ ...prev, baslik: text }))}
                                 />
                             </View>
-                        )}
 
-                        <View style={styles.inputGroup}>
-                            <Text style={styles.inputLabel}>Konum</Text>
-                            <TextInput
-                                style={styles.input}
-                                placeholder="Örn: Konferans Salonu"
-                                value={formData.konum}
-                                onChangeText={(text) => setFormData(prev => ({ ...prev, konum: text }))}
-                            />
-                        </View>
+                            <View style={styles.inputGroup}>
+                                <Text style={styles.inputLabel}>Açıklama</Text>
+                                <TextInput
+                                    style={[styles.input, styles.textArea]}
+                                    placeholder="Etkinlik hakkında bilgi..."
+                                    value={formData.aciklama}
+                                    onChangeText={(text) => setFormData(prev => ({ ...prev, aciklama: text }))}
+                                    multiline
+                                    numberOfLines={3}
+                                />
+                            </View>
 
-                        <TouchableOpacity style={styles.createButton} onPress={handleCreateEtkinlik}>
-                            <Ionicons name="add-circle" size={20} color={COLORS.white} />
-                            <Text style={styles.createButtonText}>Etkinlik Oluştur</Text>
-                        </TouchableOpacity>
-                    </ScrollView>
-                </KeyboardAvoidingView>
-            </View>
+                            <View style={styles.inputRow}>
+                                <View style={[styles.inputGroup, { flex: 1 }]}>
+                                    <Text style={styles.inputLabel}>Tarih *</Text>
+                                    <TouchableOpacity
+                                        style={styles.input}
+                                        onPress={() => { setDateMode('date'); setShowDatePicker(true); }}
+                                    >
+                                        <Text style={{ color: formData.tarih ? COLORS.text : COLORS.gray400 }}>
+                                            {formData.tarih || 'Tarih Seç'}
+                                        </Text>
+                                    </TouchableOpacity>
+                                </View>
+                                <View style={[styles.inputGroup, { flex: 1, marginLeft: SIZES.md }]}>
+                                    <Text style={styles.inputLabel}>Saat</Text>
+                                    <TouchableOpacity
+                                        style={styles.input}
+                                        onPress={() => { setDateMode('time'); setShowDatePicker(true); }}
+                                    >
+                                        <Text style={{ color: formData.saat ? COLORS.text : COLORS.gray400 }}>
+                                            {formData.saat || 'Saat Seç'}
+                                        </Text>
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
+
+                            {showDatePicker && (
+                                <View style={styles.datePickerWrapper}>
+                                    <DateTimePicker
+                                        value={selectedDate}
+                                        mode={dateMode}
+                                        display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                                        textColor={Platform.OS === 'ios' ? COLORS.text : undefined}
+                                        onChange={handleDateChange}
+                                    />
+                                </View>
+                            )}
+
+                            <View style={styles.inputGroup}>
+                                <Text style={styles.inputLabel}>Konum</Text>
+                                <TextInput
+                                    style={styles.input}
+                                    placeholder="Örn: Konferans Salonu"
+                                    value={formData.konum}
+                                    onChangeText={(text) => setFormData(prev => ({ ...prev, konum: text }))}
+                                />
+                            </View>
+
+                            <TouchableOpacity style={styles.createButton} onPress={handleCreateEtkinlik}>
+                                <Ionicons name="add-circle" size={20} color={COLORS.white} />
+                                <Text style={styles.createButtonText}>Etkinlik Oluştur</Text>
+                            </TouchableOpacity>
+                        </ScrollView>
+                    </KeyboardAvoidingView>
+                </View>
             </Modal>
 
             {/* FAB - Sadece Başkanlar için */}
@@ -512,7 +512,7 @@ const styles = StyleSheet.create({
         borderTopLeftRadius: SIZES.radiusXxl,
         borderTopRightRadius: SIZES.radiusXxl,
         padding: SIZES.xxl,
-        paddingBottom: SIZES.xxxl,
+        paddingBottom: SIZES.xxxl + 40,
         alignItems: 'center',
     },
     modalSheet: {
@@ -524,7 +524,7 @@ const styles = StyleSheet.create({
     },
     modalFormContent: {
         padding: SIZES.xxl,
-        paddingBottom: SIZES.xxxl,
+        paddingBottom: SIZES.xxxl + 40,
         flexGrow: 1,
     },
     modalHeader: {

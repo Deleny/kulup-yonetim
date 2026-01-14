@@ -11,10 +11,12 @@ import {
     ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS, SIZES, FONTS, SHADOWS } from '../theme';
 import api from '../services/api';
 
 export default function AiAsistanScreen() {
+    const insets = useSafeAreaInsets();
     const [messages, setMessages] = useState([
         {
             id: '1',
@@ -111,11 +113,12 @@ export default function AiAsistanScreen() {
         >
             <FlatList
                 ref={flatListRef}
-                data={messages}
+                data={[...messages].reverse()}
                 renderItem={renderMessage}
                 keyExtractor={(item) => item.id}
                 contentContainerStyle={styles.messageList}
-                onContentSizeChange={() => flatListRef.current?.scrollToEnd()}
+                inverted
+                showsVerticalScrollIndicator={false}
             />
 
             {loading && (
@@ -217,7 +220,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'flex-end',
         padding: SIZES.md,
-        paddingBottom: SIZES.lg,
+        paddingBottom: SIZES.xl + 40,
         backgroundColor: COLORS.white,
         borderTopWidth: 1,
         borderTopColor: COLORS.gray200,

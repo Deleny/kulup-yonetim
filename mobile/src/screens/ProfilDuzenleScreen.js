@@ -156,7 +156,7 @@ export default function ProfilDuzenleScreen({ navigation }) {
                 )}
             </TouchableOpacity>
 
-            <View style={{ height: SIZES.xxxl }} />
+            <View style={{ height: SIZES.xxxl + 60 }} />
         </ScrollView>
     );
 }

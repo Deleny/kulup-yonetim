@@ -43,15 +43,15 @@ export default function ProfilScreen({ navigation }) {
                 const data = response.data;
 
                 setUser({
-                    adSoyad: data.adSoyad,
-                    email: data.email,
-                    rol: data.rol
+                    adSoyad: data.adSoyad || 'Kullanıcı',
+                    email: data.email || '',
+                    rol: data.rol || ''
                 });
 
                 setStats({
-                    kulup: data.uyelikSayisi,
-                    gorev: data.gorevSayisi,
-                    etkinlik: data.etkinlikSayisi
+                    kulup: data.uyelikSayisi ?? 0,
+                    gorev: data.gorevSayisi ?? 0,
+                    etkinlik: data.etkinlikSayisi ?? 0
                 });
 
                 await AsyncStorage.setItem('adSoyad', data.adSoyad);

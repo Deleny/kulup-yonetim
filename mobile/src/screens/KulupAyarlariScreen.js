@@ -199,7 +199,7 @@ export default function KulupAyarlariScreen({ navigation }) {
                 )}
             </TouchableOpacity>
 
-            <View style={{ height: SIZES.xxxl }} />
+            <View style={{ height: SIZES.xxxl + 60 }} />
         </ScrollView>
     );
 }
@@ -322,6 +322,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#d97706',
         borderRadius: SIZES.radiusMd,
         marginHorizontal: SIZES.lg,
+        marginBottom: SIZES.lg,
         height: 52,
         gap: SIZES.sm,
     },

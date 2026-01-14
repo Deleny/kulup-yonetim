@@ -458,8 +458,23 @@ public class ApiController {
 
         List<Uye> uyelikler = uyeRepository.findByUserId(userId);
         int toplamGorev = 0;
+        int toplamEtkinlik = 0;
+
+        // Kullanıcının başkan olduğu kulüpleri de say
+        List<Kulup> baskanKulupler = kulupRepository.findByBaskanId(userId);
+        java.util.Set<Long> kulupIds = new java.util.HashSet<>();
+
         for (Uye uye : uyelikler) {
             toplamGorev += gorevRepository.findByUyeId(uye.getId()).size();
+            kulupIds.add(uye.getKulup().getId());
+        }
+        for (Kulup k : baskanKulupler) {
+            kulupIds.add(k.getId());
+        }
+
+        // Her kulüpün etkinlik sayısını topla
+        for (Long kulupId : kulupIds) {
+            toplamEtkinlik += etkinlikRepository.findByKulupId(kulupId).size();
         }
 
         Map<String, Object> profil = new HashMap<>();
@@ -467,9 +482,9 @@ public class ApiController {
         profil.put("email", user.getEmail());
         profil.put("adSoyad", user.getAdSoyad());
         profil.put("rol", user.getRole());
-        profil.put("uyelikSayisi", uyelikler.size());
+        profil.put("uyelikSayisi", uyelikler.size() + baskanKulupler.size());
         profil.put("gorevSayisi", toplamGorev);
-        profil.put("etkinlikSayisi", 0); // Gelecekte katılım özelliği gelince eklenebilir
+        profil.put("etkinlikSayisi", toplamEtkinlik);
 
         return ResponseEntity.ok(profil);
     }

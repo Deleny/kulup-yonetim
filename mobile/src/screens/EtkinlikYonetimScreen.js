@@ -255,102 +255,102 @@ export default function EtkinlikYonetimScreen({ navigation }) {
                             keyboardShouldPersistTaps="handled"
                             showsVerticalScrollIndicator={false}
                         >
-                        <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>Yeni Etkinlik</Text>
-                            <TouchableOpacity onPress={closeModal}>
-                                <Ionicons name="close" size={24} color={COLORS.gray500} />
+                            <View style={styles.modalHeader}>
+                                <Text style={styles.modalTitle}>Yeni Etkinlik</Text>
+                                <TouchableOpacity onPress={closeModal}>
+                                    <Ionicons name="close" size={24} color={COLORS.gray500} />
+                                </TouchableOpacity>
+                            </View>
+
+                            <TouchableOpacity
+                                style={styles.aiButton}
+                                onPress={generateAiSuggestion}
+                                disabled={isGeneratingAi}
+                            >
+                                {isGeneratingAi ? (
+                                    <ActivityIndicator size="small" color="#8b5cf6" />
+                                ) : (
+                                    <>
+                                        <Ionicons name="sparkles" size={18} color="#8b5cf6" />
+                                        <Text style={styles.aiButtonText}>AI ile Etkinlik Önerisi Al</Text>
+                                    </>
+                                )}
                             </TouchableOpacity>
-                        </View>
 
-                        <TouchableOpacity
-                            style={styles.aiButton}
-                            onPress={generateAiSuggestion}
-                            disabled={isGeneratingAi}
-                        >
-                            {isGeneratingAi ? (
-                                <ActivityIndicator size="small" color="#8b5cf6" />
-                            ) : (
-                                <>
-                                    <Ionicons name="sparkles" size={18} color="#8b5cf6" />
-                                    <Text style={styles.aiButtonText}>AI ile Etkinlik Önerisi Al</Text>
-                                </>
-                            )}
-                        </TouchableOpacity>
-
-                        <View style={styles.inputGroup}>
-                            <Text style={styles.inputLabel}>Baslik *</Text>
-                            <TextInput
-                                style={styles.input}
-                                placeholder="Etkinlik basligi"
-                                value={formData.baslik}
-                                onChangeText={(text) => setFormData(prev => ({ ...prev, baslik: text }))}
-                            />
-                        </View>
-
-                        <View style={styles.inputGroup}>
-                            <Text style={styles.inputLabel}>Aciklama</Text>
-                            <TextInput
-                                style={[styles.input, { height: 80, textAlignVertical: 'top' }]}
-                                placeholder="Etkinlik aciklamasi"
-                                value={formData.aciklama}
-                                onChangeText={(text) => setFormData(prev => ({ ...prev, aciklama: text }))}
-                                multiline
-                            />
-                        </View>
-
-                        <View style={styles.row}>
-                            <View style={[styles.inputGroup, { flex: 1 }]}>
-                                <Text style={styles.inputLabel}>Tarih *</Text>
-                                <TouchableOpacity
+                            <View style={styles.inputGroup}>
+                                <Text style={styles.inputLabel}>Baslik *</Text>
+                                <TextInput
                                     style={styles.input}
-                                    onPress={() => showDateMode('date')}
-                                >
-                                    <Text style={{ color: formData.tarih ? COLORS.text : COLORS.gray400, paddingTop: 4 }}>
-                                        {formData.tarih || 'YYYY-MM-DD'}
-                                    </Text>
-                                </TouchableOpacity>
-                            </View>
-                            <View style={[styles.inputGroup, { flex: 1, marginLeft: SIZES.md }]}>
-                                <Text style={styles.inputLabel}>Saat</Text>
-                                <TouchableOpacity
-                                    style={styles.input}
-                                    onPress={() => showDateMode('time')}
-                                >
-                                    <Text style={{ color: formData.saat ? COLORS.text : COLORS.gray400, paddingTop: 4 }}>
-                                        {formData.saat || 'HH:MM'}
-                                    </Text>
-                                </TouchableOpacity>
-                            </View>
-                        </View>
-
-                        {showDatePicker && (
-                            <View style={styles.datePickerWrapper}>
-                                <DateTimePicker
-                                    testID="dateTimePicker"
-                                    value={selectedDate}
-                                    mode={dateMode}
-                                    is24Hour={true}
-                                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                                    textColor={Platform.OS === 'ios' ? COLORS.text : undefined}
-                                    onChange={onDateChange}
+                                    placeholder="Etkinlik basligi"
+                                    value={formData.baslik}
+                                    onChangeText={(text) => setFormData(prev => ({ ...prev, baslik: text }))}
                                 />
                             </View>
-                        )}
 
-                        <View style={styles.inputGroup}>
-                            <Text style={styles.inputLabel}>Konum</Text>
-                            <TextInput
-                                style={styles.input}
-                                placeholder="Etkinlik konumu"
-                                value={formData.konum}
-                                onChangeText={(text) => setFormData(prev => ({ ...prev, konum: text }))}
-                            />
-                        </View>
+                            <View style={styles.inputGroup}>
+                                <Text style={styles.inputLabel}>Aciklama</Text>
+                                <TextInput
+                                    style={[styles.input, { height: 80, textAlignVertical: 'top' }]}
+                                    placeholder="Etkinlik aciklamasi"
+                                    value={formData.aciklama}
+                                    onChangeText={(text) => setFormData(prev => ({ ...prev, aciklama: text }))}
+                                    multiline
+                                />
+                            </View>
 
-                        <TouchableOpacity style={styles.submitButton} onPress={handleCreateEtkinlik}>
-                            <Ionicons name="checkmark-circle" size={20} color={COLORS.white} />
-                            <Text style={styles.submitButtonText}>Olustur</Text>
-                        </TouchableOpacity>
+                            <View style={styles.row}>
+                                <View style={[styles.inputGroup, { flex: 1 }]}>
+                                    <Text style={styles.inputLabel}>Tarih *</Text>
+                                    <TouchableOpacity
+                                        style={styles.input}
+                                        onPress={() => showDateMode('date')}
+                                    >
+                                        <Text style={{ color: formData.tarih ? COLORS.text : COLORS.gray400, paddingTop: 4 }}>
+                                            {formData.tarih || 'YYYY-MM-DD'}
+                                        </Text>
+                                    </TouchableOpacity>
+                                </View>
+                                <View style={[styles.inputGroup, { flex: 1, marginLeft: SIZES.md }]}>
+                                    <Text style={styles.inputLabel}>Saat</Text>
+                                    <TouchableOpacity
+                                        style={styles.input}
+                                        onPress={() => showDateMode('time')}
+                                    >
+                                        <Text style={{ color: formData.saat ? COLORS.text : COLORS.gray400, paddingTop: 4 }}>
+                                            {formData.saat || 'HH:MM'}
+                                        </Text>
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
+
+                            {showDatePicker && (
+                                <View style={styles.datePickerWrapper}>
+                                    <DateTimePicker
+                                        testID="dateTimePicker"
+                                        value={selectedDate}
+                                        mode={dateMode}
+                                        is24Hour={true}
+                                        display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                                        textColor={Platform.OS === 'ios' ? COLORS.text : undefined}
+                                        onChange={onDateChange}
+                                    />
+                                </View>
+                            )}
+
+                            <View style={styles.inputGroup}>
+                                <Text style={styles.inputLabel}>Konum</Text>
+                                <TextInput
+                                    style={styles.input}
+                                    placeholder="Etkinlik konumu"
+                                    value={formData.konum}
+                                    onChangeText={(text) => setFormData(prev => ({ ...prev, konum: text }))}
+                                />
+                            </View>
+
+                            <TouchableOpacity style={styles.submitButton} onPress={handleCreateEtkinlik}>
+                                <Ionicons name="checkmark-circle" size={20} color={COLORS.white} />
+                                <Text style={styles.submitButtonText}>Olustur</Text>
+                            </TouchableOpacity>
                         </ScrollView>
                     </KeyboardAvoidingView>
                 </View>
@@ -472,7 +472,7 @@ const styles = StyleSheet.create({
         borderTopLeftRadius: SIZES.radiusXxl,
         borderTopRightRadius: SIZES.radiusXxl,
         padding: SIZES.xxl,
-        paddingBottom: SIZES.xxxl,
+        paddingBottom: SIZES.xxxl + 40,
     },
     modalSheet: {
         backgroundColor: COLORS.white,
@@ -483,7 +483,7 @@ const styles = StyleSheet.create({
     },
     modalFormContent: {
         padding: SIZES.xxl,
-        paddingBottom: SIZES.xxxl,
+        paddingBottom: SIZES.xxxl + 40,
         flexGrow: 1,
     },
     modalHeader: {

@@ -1,10 +1,6 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// ============================================
-// AWS DEPLOYMENT İÇİN BU SATIRI DEĞİŞTİR!
-// Örnek: const BASE_URL = 'http://your-aws-server.com:8080';
-// ============================================
 const BASE_URL = 'http://3.120.238.191:8080';
 
 const api = axios.create({

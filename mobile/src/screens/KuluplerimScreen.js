@@ -10,6 +10,9 @@ import {
     TextInput,
     Alert,
     ActivityIndicator,
+    KeyboardAvoidingView,
+    ScrollView,
+    Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -24,6 +27,7 @@ export default function KuluplerimScreen({ navigation }) {
     const [modalVisible, setModalVisible] = useState(false);
     const [joinModalVisible, setJoinModalVisible] = useState(false);
     const [createModalVisible, setCreateModalVisible] = useState(false);
+    const [detailModalVisible, setDetailModalVisible] = useState(false);
     const [selectedKulup, setSelectedKulup] = useState(null);
     const [ogrenciNo, setOgrenciNo] = useState('');
     const [telefon, setTelefon] = useState('');
@@ -286,22 +290,36 @@ export default function KuluplerimScreen({ navigation }) {
         );
     };
 
+    const openDetailModal = (kulup) => {
+        setSelectedKulup(kulup);
+        setDetailModalVisible(true);
+    };
+
+    const handleJoinFromDetail = () => {
+        setDetailModalVisible(false);
+        setJoinModalVisible(true);
+    };
+
     const renderAvailableKulup = ({ item }) => (
-        <View style={styles.availableCard}>
+        <TouchableOpacity
+            style={styles.availableCard}
+            activeOpacity={0.7}
+            onPress={() => openDetailModal(item)}
+        >
             <View style={styles.availableAvatar}>
                 <Text style={styles.availableAvatarText}>{item.ad.charAt(0)}</Text>
             </View>
             <View style={styles.availableContent}>
                 <Text style={styles.availableAd}>{item.ad}</Text>
-                <Text style={styles.availableAciklama} numberOfLines={1}>{item.aciklama}</Text>
+                <Text style={styles.availableAciklama} numberOfLines={2}>{item.aciklama || 'Açıklama yok'}</Text>
                 <Text style={styles.availableUye}>
-                    <Ionicons name="people-outline" size={12} color={COLORS.gray400} /> {item.uyeSayisi} üye
+                    <Ionicons name="people-outline" size={12} color={COLORS.gray400} /> {item.uyeSayisi || 0} üye
                 </Text>
             </View>
             <TouchableOpacity style={styles.joinButton} onPress={() => openJoinModal(item)}>
                 <Ionicons name="add" size={20} color={COLORS.white} />
             </TouchableOpacity>
-        </View>
+        </TouchableOpacity>
     );
 
     if (loading) {
@@ -346,6 +364,62 @@ export default function KuluplerimScreen({ navigation }) {
                 }
             />
 
+            {/* Kulüp Detay Modal */}
+            <Modal
+                animationType="slide"
+                transparent={true}
+                visible={detailModalVisible}
+                onRequestClose={() => setDetailModalVisible(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.detailModalContent}>
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>Kulüp Detayı</Text>
+                            <TouchableOpacity onPress={() => setDetailModalVisible(false)}>
+                                <Ionicons name="close" size={24} color={COLORS.gray500} />
+                            </TouchableOpacity>
+                        </View>
+
+                        {selectedKulup && (
+                            <>
+                                <View style={styles.detailAvatarContainer}>
+                                    <View style={styles.detailAvatar}>
+                                        <Text style={styles.detailAvatarText}>{selectedKulup.ad?.charAt(0)}</Text>
+                                    </View>
+                                    <Text style={styles.detailKulupName}>{selectedKulup.ad}</Text>
+                                </View>
+
+                                <View style={styles.detailStatsRow}>
+                                    <View style={styles.detailStatItem}>
+                                        <Ionicons name="people" size={24} color={COLORS.primary} />
+                                        <Text style={styles.detailStatValue}>{selectedKulup.uyeSayisi || 0}</Text>
+                                        <Text style={styles.detailStatLabel}>Üye</Text>
+                                    </View>
+                                    <View style={styles.detailStatDivider} />
+                                    <View style={styles.detailStatItem}>
+                                        <Ionicons name="calendar" size={24} color="#16a34a" />
+                                        <Text style={styles.detailStatValue}>{selectedKulup.etkinlikSayisi || 0}</Text>
+                                        <Text style={styles.detailStatLabel}>Etkinlik</Text>
+                                    </View>
+                                </View>
+
+                                <View style={styles.detailAciklamaBox}>
+                                    <Text style={styles.detailAciklamaTitle}>Hakkında</Text>
+                                    <Text style={styles.detailAciklamaText}>
+                                        {selectedKulup.aciklama || 'Bu kulüp için açıklama bulunmuyor.'}
+                                    </Text>
+                                </View>
+
+                                <TouchableOpacity style={styles.detailJoinButton} onPress={handleJoinFromDetail}>
+                                    <Ionicons name="person-add" size={20} color={COLORS.white} />
+                                    <Text style={styles.detailJoinButtonText}>Kulübe Katıl</Text>
+                                </TouchableOpacity>
+                            </>
+                        )}
+                    </View>
+                </View>
+            </Modal>
+
             {/* Kulübe Katıl Modal */}
             <Modal
                 animationType="slide"
@@ -354,50 +428,60 @@ export default function KuluplerimScreen({ navigation }) {
                 onRequestClose={() => setJoinModalVisible(false)}
             >
                 <View style={styles.modalOverlay}>
-                    <View style={styles.modalContent}>
-                        <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>Kulübe Katıl</Text>
-                            <TouchableOpacity onPress={() => setJoinModalVisible(false)}>
-                                <Ionicons name="close" size={24} color={COLORS.gray500} />
-                            </TouchableOpacity>
-                        </View>
-
-                        {selectedKulup && (
-                            <View style={styles.selectedKulupInfo}>
-                                <View style={styles.modalAvatar}>
-                                    <Text style={styles.modalAvatarText}>{selectedKulup.ad.charAt(0)}</Text>
-                                </View>
-                                <Text style={styles.selectedKulupName}>{selectedKulup.ad}</Text>
+                    <KeyboardAvoidingView
+                        style={styles.modalSheet}
+                        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                        keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 40}
+                    >
+                        <ScrollView
+                            contentContainerStyle={styles.modalFormContent}
+                            keyboardShouldPersistTaps="handled"
+                            showsVerticalScrollIndicator={false}
+                        >
+                            <View style={styles.modalHeader}>
+                                <Text style={styles.modalTitle}>Kulübe Katıl</Text>
+                                <TouchableOpacity onPress={() => setJoinModalVisible(false)}>
+                                    <Ionicons name="close" size={24} color={COLORS.gray500} />
+                                </TouchableOpacity>
                             </View>
-                        )}
 
-                        <View style={styles.inputGroup}>
-                            <Text style={styles.inputLabel}>Öğrenci Numarası *</Text>
-                            <TextInput
-                                style={styles.input}
-                                placeholder="Örn: 20210001"
-                                value={ogrenciNo}
-                                onChangeText={setOgrenciNo}
-                                keyboardType="numeric"
-                            />
-                        </View>
+                            {selectedKulup && (
+                                <View style={styles.selectedKulupInfo}>
+                                    <View style={styles.modalAvatar}>
+                                        <Text style={styles.modalAvatarText}>{selectedKulup.ad.charAt(0)}</Text>
+                                    </View>
+                                    <Text style={styles.selectedKulupName}>{selectedKulup.ad}</Text>
+                                </View>
+                            )}
 
-                        <View style={styles.inputGroup}>
-                            <Text style={styles.inputLabel}>Telefon (Opsiyonel)</Text>
-                            <TextInput
-                                style={styles.input}
-                                placeholder="05xx xxx xx xx"
-                                value={telefon}
-                                onChangeText={setTelefon}
-                                keyboardType="phone-pad"
-                            />
-                        </View>
+                            <View style={styles.inputGroup}>
+                                <Text style={styles.inputLabel}>Öğrenci Numarası *</Text>
+                                <TextInput
+                                    style={styles.input}
+                                    placeholder="Örn: 20210001"
+                                    value={ogrenciNo}
+                                    onChangeText={setOgrenciNo}
+                                    keyboardType="numeric"
+                                />
+                            </View>
 
-                        <TouchableOpacity style={styles.submitButton} onPress={handleJoinKulup}>
-                            <Ionicons name="checkmark-circle" size={20} color={COLORS.white} />
-                            <Text style={styles.submitButtonText}>Katılım Talebi Gönder</Text>
-                        </TouchableOpacity>
-                    </View>
+                            <View style={styles.inputGroup}>
+                                <Text style={styles.inputLabel}>Telefon (Opsiyonel)</Text>
+                                <TextInput
+                                    style={styles.input}
+                                    placeholder="05xx xxx xx xx"
+                                    value={telefon}
+                                    onChangeText={setTelefon}
+                                    keyboardType="phone-pad"
+                                />
+                            </View>
+
+                            <TouchableOpacity style={styles.submitButton} onPress={handleJoinKulup}>
+                                <Ionicons name="checkmark-circle" size={20} color={COLORS.white} />
+                                <Text style={styles.submitButtonText}>Katılım Talebi Gönder</Text>
+                            </TouchableOpacity>
+                        </ScrollView>
+                    </KeyboardAvoidingView>
                 </View>
             </Modal>
 
@@ -409,74 +493,84 @@ export default function KuluplerimScreen({ navigation }) {
                 onRequestClose={() => setCreateModalVisible(false)}
             >
                 <View style={styles.modalOverlay}>
-                    <View style={styles.modalContent}>
-                        <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>Yeni Kulüp Oluştur</Text>
-                            <TouchableOpacity onPress={() => setCreateModalVisible(false)}>
-                                <Ionicons name="close" size={24} color={COLORS.gray500} />
+                    <KeyboardAvoidingView
+                        style={styles.modalSheet}
+                        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                        keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 40}
+                    >
+                        <ScrollView
+                            contentContainerStyle={styles.modalFormContent}
+                            keyboardShouldPersistTaps="handled"
+                            showsVerticalScrollIndicator={false}
+                        >
+                            <View style={styles.modalHeader}>
+                                <Text style={styles.modalTitle}>Yeni Kulüp Oluştur</Text>
+                                <TouchableOpacity onPress={() => setCreateModalVisible(false)}>
+                                    <Ionicons name="close" size={24} color={COLORS.gray500} />
+                                </TouchableOpacity>
+                            </View>
+
+                            <View style={styles.infoBox}>
+                                <Ionicons name="information-circle" size={20} color="#0ea5e9" />
+                                <Text style={styles.infoText}>
+                                    Kulübünüz admin onayından sonra aktif olacaktır.
+                                </Text>
+                            </View>
+
+                            <View style={styles.inputGroup}>
+                                <Text style={styles.inputLabel}>Kulüp Adı *</Text>
+                                <TextInput
+                                    style={styles.input}
+                                    placeholder="Örn: Yazılım Kulübü"
+                                    value={kulupAd}
+                                    onChangeText={setKulupAd}
+                                />
+                            </View>
+
+                            <View style={styles.inputGroup}>
+                                <Text style={styles.inputLabel}>Açıklama *</Text>
+                                <TextInput
+                                    style={[styles.input, styles.textArea]}
+                                    placeholder="Kulübünüzü kısaca tanıtın..."
+                                    value={kulupAciklama}
+                                    onChangeText={setKulupAciklama}
+                                    multiline
+                                    numberOfLines={4}
+                                    textAlignVertical="top"
+                                />
+                            </View>
+
+                            <TouchableOpacity
+                                style={[styles.aiButton, (!kulupAd.trim() || isGeneratingAi) && styles.aiButtonDisabled]}
+                                onPress={generateAiDescription}
+                                disabled={isGeneratingAi || !kulupAd.trim()}
+                            >
+                                {isGeneratingAi ? (
+                                    <ActivityIndicator size="small" color="#8b5cf6" />
+                                ) : (
+                                    <>
+                                        <Ionicons name="sparkles" size={18} color="#8b5cf6" />
+                                        <Text style={styles.aiButtonText}>AI ile Açıklama Oluştur</Text>
+                                    </>
+                                )}
                             </TouchableOpacity>
-                        </View>
 
-                        <View style={styles.infoBox}>
-                            <Ionicons name="information-circle" size={20} color="#0ea5e9" />
-                            <Text style={styles.infoText}>
-                                Kulübünüz admin onayından sonra aktif olacaktır.
-                            </Text>
-                        </View>
-
-                        <View style={styles.inputGroup}>
-                            <Text style={styles.inputLabel}>Kulüp Adı *</Text>
-                            <TextInput
-                                style={styles.input}
-                                placeholder="Örn: Yazılım Kulübü"
-                                value={kulupAd}
-                                onChangeText={setKulupAd}
-                            />
-                        </View>
-
-                        <View style={styles.inputGroup}>
-                            <Text style={styles.inputLabel}>Açıklama *</Text>
-                            <TextInput
-                                style={[styles.input, styles.textArea]}
-                                placeholder="Kulübünüzü kısaca tanıtın..."
-                                value={kulupAciklama}
-                                onChangeText={setKulupAciklama}
-                                multiline
-                                numberOfLines={4}
-                                textAlignVertical="top"
-                            />
-                        </View>
-
-                        <TouchableOpacity
-                            style={[styles.aiButton, (!kulupAd.trim() || isGeneratingAi) && styles.aiButtonDisabled]}
-                            onPress={generateAiDescription}
-                            disabled={isGeneratingAi || !kulupAd.trim()}
-                        >
-                            {isGeneratingAi ? (
-                                <ActivityIndicator size="small" color="#8b5cf6" />
-                            ) : (
-                                <>
-                                    <Ionicons name="sparkles" size={18} color="#8b5cf6" />
-                                    <Text style={styles.aiButtonText}>AI ile Açıklama Oluştur</Text>
-                                </>
-                            )}
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                            style={[styles.submitButton, isCreating && styles.submitButtonDisabled]}
-                            onPress={handleCreateKulup}
-                            disabled={isCreating}
-                        >
-                            {isCreating ? (
-                                <ActivityIndicator size="small" color={COLORS.white} />
-                            ) : (
-                                <>
-                                    <Ionicons name="add-circle" size={20} color={COLORS.white} />
-                                    <Text style={styles.submitButtonText}>Kulüp Oluştur</Text>
-                                </>
-                            )}
-                        </TouchableOpacity>
-                    </View>
+                            <TouchableOpacity
+                                style={[styles.submitButton, isCreating && styles.submitButtonDisabled]}
+                                onPress={handleCreateKulup}
+                                disabled={isCreating}
+                            >
+                                {isCreating ? (
+                                    <ActivityIndicator size="small" color={COLORS.white} />
+                                ) : (
+                                    <>
+                                        <Ionicons name="add-circle" size={20} color={COLORS.white} />
+                                        <Text style={styles.submitButtonText}>Kulüp Oluştur</Text>
+                                    </>
+                                )}
+                            </TouchableOpacity>
+                        </ScrollView>
+                    </KeyboardAvoidingView>
                 </View>
             </Modal>
 
@@ -647,7 +741,19 @@ const styles = StyleSheet.create({
         borderTopLeftRadius: SIZES.radiusXxl,
         borderTopRightRadius: SIZES.radiusXxl,
         padding: SIZES.xxl,
-        paddingBottom: SIZES.xxxl,
+        paddingBottom: SIZES.xxxl + 40,
+    },
+    modalSheet: {
+        backgroundColor: COLORS.white,
+        borderTopLeftRadius: SIZES.radiusXxl,
+        borderTopRightRadius: SIZES.radiusXxl,
+        maxHeight: '90%',
+        width: '100%',
+    },
+    modalFormContent: {
+        padding: SIZES.xxl,
+        paddingBottom: SIZES.xxxl + 40,
+        flexGrow: 1,
     },
     modalHeader: {
         flexDirection: 'row',
@@ -791,5 +897,100 @@ const styles = StyleSheet.create({
         fontSize: SIZES.fontSm,
         fontWeight: FONTS.semibold,
         color: '#8b5cf6',
+    },
+    // Kulüp Detay Modal Stilleri
+    detailModalContent: {
+        backgroundColor: COLORS.white,
+        borderTopLeftRadius: SIZES.radiusXxl,
+        borderTopRightRadius: SIZES.radiusXxl,
+        padding: SIZES.xxl,
+        paddingBottom: SIZES.xxxl + 40,
+        alignItems: 'center',
+    },
+    detailAvatarContainer: {
+        alignItems: 'center',
+        marginBottom: SIZES.xl,
+    },
+    detailAvatar: {
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        backgroundColor: COLORS.primary,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: SIZES.md,
+        ...SHADOWS.primary,
+    },
+    detailAvatarText: {
+        fontSize: 32,
+        fontWeight: FONTS.bold,
+        color: COLORS.white,
+    },
+    detailKulupName: {
+        fontSize: SIZES.fontXxl,
+        fontWeight: FONTS.bold,
+        color: COLORS.text,
+        textAlign: 'center',
+    },
+    detailStatsRow: {
+        flexDirection: 'row',
+        backgroundColor: COLORS.gray50,
+        borderRadius: SIZES.radiusMd,
+        padding: SIZES.lg,
+        marginBottom: SIZES.xl,
+        width: '100%',
+    },
+    detailStatItem: {
+        flex: 1,
+        alignItems: 'center',
+    },
+    detailStatValue: {
+        fontSize: SIZES.fontXxl,
+        fontWeight: FONTS.bold,
+        color: COLORS.text,
+        marginTop: SIZES.xs,
+    },
+    detailStatLabel: {
+        fontSize: SIZES.fontSm,
+        color: COLORS.gray500,
+    },
+    detailStatDivider: {
+        width: 1,
+        backgroundColor: COLORS.gray200,
+        marginHorizontal: SIZES.md,
+    },
+    detailAciklamaBox: {
+        width: '100%',
+        backgroundColor: COLORS.gray50,
+        borderRadius: SIZES.radiusMd,
+        padding: SIZES.lg,
+        marginBottom: SIZES.xl,
+    },
+    detailAciklamaTitle: {
+        fontSize: SIZES.fontSm,
+        fontWeight: FONTS.semibold,
+        color: COLORS.gray500,
+        marginBottom: SIZES.sm,
+    },
+    detailAciklamaText: {
+        fontSize: SIZES.fontMd,
+        color: COLORS.text,
+        lineHeight: 22,
+    },
+    detailJoinButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: COLORS.primary,
+        borderRadius: SIZES.radiusMd,
+        paddingVertical: SIZES.lg,
+        gap: SIZES.sm,
+        width: '100%',
+        ...SHADOWS.primary,
+    },
+    detailJoinButtonText: {
+        fontSize: SIZES.fontMd,
+        fontWeight: FONTS.bold,
+        color: COLORS.white,
     },
 });
