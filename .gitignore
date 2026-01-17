@@ -26,3 +26,9 @@ node_modules/
 
 # Logs
 *.log
+
+# Python
+mail-service/venv/
+mail-service/.env
+__pycache__/
+*.pyc
