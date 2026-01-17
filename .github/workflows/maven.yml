@@ -42,16 +42,28 @@ jobs:
           target: "/home/ec2-user/app"
           strip_components: 1
 
-      - name: Sunucuda Uygulamayi Baslat
-        uses: appleboy/ssh-action@v1.0.3
-        env:
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      - name: Mail Servisini EC2'ye Gonder
+        uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
-          envs: GEMINI_API_KEY
+          source: "mail-service/main.py,mail-service/requirements.txt"
+          target: "/home/ec2-user"
+
+      - name: Sunucuda Uygulamalari Baslat
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          MAIL_USER: ${{ secrets.MAIL_USER }}
+          MAIL_PASS: ${{ secrets.MAIL_PASS }}
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          envs: GEMINI_API_KEY,MAIL_USER,MAIL_PASS
           script: |
+            # Spring Boot uygulamasini baslat
             mkdir -p /home/ec2-user/app
             sudo fuser -k 8080/tcp || true
             cd /home/ec2-user/app
@@ -60,3 +72,19 @@ jobs:
               exit 1
             fi
             nohup env GEMINI_API_KEY="${GEMINI_API_KEY}" java -jar *.jar > app.log 2>&1 &
+            
+            # Python mail servisini baslat
+            sudo fuser -k 8000/tcp || true
+            cd /home/ec2-user/mail-service
+            
+            # .env dosyasini olustur
+            echo "MAIL_HOST=smtp.gmail.com" > .env
+            echo "MAIL_PORT=587" >> .env
+            echo "MAIL_USER=${MAIL_USER}" >> .env
+            echo "MAIL_PASS=${MAIL_PASS}" >> .env
+            
+            # Python ortamini kur ve baslat
+            python3 -m venv venv 2>/dev/null || true
+            source venv/bin/activate
+            pip install -r requirements.txt -q
+            nohup uvicorn main:app --host 0.0.0.0 --port 8000 > mail.log 2>&1 &
