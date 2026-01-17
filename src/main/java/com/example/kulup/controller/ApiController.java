@@ -13,6 +13,7 @@ import com.example.kulup.repository.KulupRepository;
 import com.example.kulup.repository.UserRepository;
 import com.example.kulup.repository.UyeRepository;
 import com.example.kulup.service.PushNotificationService;
+import com.example.kulup.service.MailServisi;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -31,6 +32,7 @@ public class ApiController {
     private final AidatRepository aidatRepository;
     private final UserRepository userRepository;
     private final PushNotificationService pushNotificationService;
+    private final MailServisi mailServisi;
 
     public ApiController(KulupRepository kulupRepository,
             UyeRepository uyeRepository,
@@ -38,7 +40,8 @@ public class ApiController {
             GorevRepository gorevRepository,
             AidatRepository aidatRepository,
             UserRepository userRepository,
-            PushNotificationService pushNotificationService) {
+            PushNotificationService pushNotificationService,
+            MailServisi mailServisi) {
         this.kulupRepository = kulupRepository;
         this.uyeRepository = uyeRepository;
         this.etkinlikRepository = etkinlikRepository;
@@ -46,6 +49,7 @@ public class ApiController {
         this.aidatRepository = aidatRepository;
         this.userRepository = userRepository;
         this.pushNotificationService = pushNotificationService;
+        this.mailServisi = mailServisi;
     }
 
     @GetMapping("/kulup/{id}")
@@ -439,6 +443,20 @@ public class ApiController {
 
             User user = new User(email, sifre, adSoyad, "UYE");
             userRepository.save(user);
+
+            // Hoşgeldin maili gönder
+            try {
+                String mailBaslik = "Kulüp Takip Sistemine Hoşgeldiniz!";
+                String mailMesaj = "Sayın " + adSoyad + ",\n\n" +
+                        "Kulüp Takip Sistemine başarıyla kayıt oldunuz.\n\n" +
+                        "Artık kulüplere katılabilir, etkinliklere katılabilir ve görevlerinizi takip edebilirsiniz.\n\n"
+                        +
+                        "İyi günler dileriz.\n" +
+                        "Kulüp Takip Ekibi";
+                mailServisi.mailGonder(email, mailBaslik, mailMesaj);
+            } catch (Exception mailEx) {
+                System.err.println("Mail gönderilemedi: " + mailEx.getMessage());
+            }
 
             return ResponseEntity.ok(Map.of(
                     "message", "Kayıt başarılı",
