@@ -1,34 +1,11 @@
-# Maven
 target/
-*.jar
-*.war
-
-# Eclipse
+!.mvn/wrapper/maven-wrapper.properties
+!**/src/main/**/target/
 .classpath
 .project
-.settings/
-
-# VS Code
-.vscode/
-
-# IDE
+.settings
+.vscode
+.idea
 *.iml
-.idea/
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Node
-node_modules/
-.expo/
-*.lock
-
-# Logs
 *.log
-
-# Python
-mail-service/venv/
-mail-service/.env
-__pycache__/
-*.pyc
+src2/
