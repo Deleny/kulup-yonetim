@@ -9,3 +9,6 @@ target/
 *.iml
 *.log
 src2/
+node_modules/
+mobile/node_modules/
+
