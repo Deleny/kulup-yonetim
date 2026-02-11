@@ -10,9 +10,16 @@ import java.util.List;
 
 public interface GorevRepository extends JpaRepository<Gorev, Long> {
     List<Gorev> findByUye(Uye uye);
+
     List<Gorev> findByUyeId(Long uyeId);
+
     List<Gorev> findByUyeIdAndDurum(Long uyeId, String durum);
+
     List<Gorev> findByEtkinlikId(Long etkinlikId);
+
     List<Gorev> findByUye_Kulup_Id(Long kulupId);
+
     Page<Gorev> findByUye_Kulup_Id(Long kulupId, Pageable pageable);
+
+    List<Gorev> findByUye_Kulup_IdAndDurum(Long kulupId, String durum);
 }

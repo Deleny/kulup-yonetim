@@ -35,9 +35,9 @@ export default function UyeYonetimScreen({ navigation }) {
                 return;
             }
 
-            // Üyeleri API'den çek
-            const response = await api.get(`/api/kulup/${kulupId}/uyeler`);
-            const uyeData = response.data.map(u => ({
+            // Onaylı üyeleri çek
+            const uyeResponse = await api.get(`/api/kulup/${kulupId}/uyeler`);
+            const uyeData = uyeResponse.data.map(u => ({
                 id: u.id,
                 adSoyad: u.user?.adSoyad || 'Bilinmiyor',
                 email: u.user?.email || '',
@@ -45,8 +45,17 @@ export default function UyeYonetimScreen({ navigation }) {
                 katilimTarihi: u.kayitTarihi
             }));
             setUyeler(uyeData);
-            // Talepler için ayrı endpoint gerekebilir, şimdilik boş
-            setTalepler([]);
+
+            // Bekleyen talepleri API'den çek
+            const talepResponse = await api.get(`/api/kulup/${kulupId}/bekleyen-uyeler`);
+            const talepData = talepResponse.data.map(u => ({
+                id: u.id,
+                adSoyad: u.user?.adSoyad || 'Bilinmiyor',
+                email: u.user?.email || '',
+                ogrenciNo: u.ogrenciNo || '',
+                telefon: u.telefon || '',
+            }));
+            setTalepler(talepData);
         } catch (error) {
             console.log('Veri yükleme hatası:', error.message);
             Alert.alert('Hata', 'Veriler yüklenemedi. Backend bağlantısını kontrol edin.');
@@ -67,9 +76,14 @@ export default function UyeYonetimScreen({ navigation }) {
             [
                 { text: 'Iptal', style: 'cancel' },
                 {
-                    text: 'Onayla', onPress: () => {
-                        setTalepler(prev => prev.filter(t => t.id !== talep.id));
-                        Alert.alert('Basarili', 'Uyelik talebi onaylandi');
+                    text: 'Onayla', onPress: async () => {
+                        try {
+                            await api.put(`/api/baskan/uye/${talep.id}/durum`, { durum: 'ONAYLANDI' });
+                            Alert.alert('Basarili', 'Uyelik talebi onaylandi');
+                            loadData();
+                        } catch (error) {
+                            Alert.alert('Hata', 'Onaylama işlemi başarısız: ' + error.message);
+                        }
                     }
                 },
             ]
@@ -83,9 +97,14 @@ export default function UyeYonetimScreen({ navigation }) {
             [
                 { text: 'Iptal', style: 'cancel' },
                 {
-                    text: 'Reddet', style: 'destructive', onPress: () => {
-                        setTalepler(prev => prev.filter(t => t.id !== talep.id));
-                        Alert.alert('Bilgi', 'Uyelik talebi reddedildi');
+                    text: 'Reddet', style: 'destructive', onPress: async () => {
+                        try {
+                            await api.put(`/api/baskan/uye/${talep.id}/durum`, { durum: 'REDDEDILDI' });
+                            Alert.alert('Bilgi', 'Uyelik talebi reddedildi');
+                            loadData();
+                        } catch (error) {
+                            Alert.alert('Hata', 'Reddetme işlemi başarısız: ' + error.message);
+                        }
                     }
                 },
             ]
@@ -99,8 +118,14 @@ export default function UyeYonetimScreen({ navigation }) {
             [
                 { text: 'Iptal', style: 'cancel' },
                 {
-                    text: 'Cikar', style: 'destructive', onPress: () => {
-                        setUyeler(prev => prev.filter(u => u.id !== uye.id));
+                    text: 'Cikar', style: 'destructive', onPress: async () => {
+                        try {
+                            await api.delete(`/api/baskan/uye/${uye.id}/sil`);
+                            Alert.alert('Başarılı', 'Üye kulüpten çıkarıldı');
+                            loadData();
+                        } catch (error) {
+                            Alert.alert('Hata', 'Üye çıkarılamadı: ' + error.message);
+                        }
                     }
                 },
             ]

@@ -100,11 +100,19 @@ public class ApiController {
     @GetMapping("/kulup/{kulupId}/istatistikler")
     public Map<String, Object> getKulupIstatistikleri(@PathVariable Long kulupId) {
         Map<String, Object> stats = new HashMap<>();
-        stats.put("toplamUye", uyeRepository.findByKulupId(kulupId).size());
+        stats.put("toplamUye", uyeRepository.findByKulupIdAndDurum(kulupId, "ONAYLANDI").size());
         stats.put("toplamEtkinlik", etkinlikRepository.findByKulupId(kulupId).size());
         stats.put("odenenAidat", aidatRepository.sumOdenenByKulupId(kulupId));
         stats.put("bekleyenAidat", aidatRepository.sumOdenmeyenByKulupId(kulupId));
+        stats.put("bekleyenTalep", uyeRepository.findByKulupIdAndDurum(kulupId, "ONAY_BEKLIYOR").size());
+        stats.put("bekleyenGorev", gorevRepository.findByUye_Kulup_IdAndDurum(kulupId, "BEKLEMEDE").size());
         return stats;
+    }
+
+    // Bekleyen üye talepleri (başkan için)
+    @GetMapping("/kulup/{kulupId}/bekleyen-uyeler")
+    public List<Uye> getBekleyenUyeler(@PathVariable Long kulupId) {
+        return uyeRepository.findByKulupIdAndDurum(kulupId, "ONAY_BEKLIYOR");
     }
 
     // ========== MOBİL API ENDPOINT'LERİ ==========
@@ -709,7 +717,7 @@ public class ApiController {
             }
             String durum = body.get("durum");
             if ("ONAYLANDI".equals(durum)) {
-                // Üye pozisyonunu güncelle veya sadece işaretle
+                uye.setDurum("ONAYLANDI");
                 uyeRepository.save(uye);
                 return ResponseEntity.ok(Map.of("message", "Üye onaylandı"));
             } else if ("REDDEDILDI".equals(durum)) {
@@ -719,6 +727,21 @@ public class ApiController {
             return ResponseEntity.badRequest().body(Map.of("error", "Geçersiz durum"));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", "İşlem başarısız"));
+        }
+    }
+
+    // Üye sil (başkan)
+    @DeleteMapping("/baskan/uye/{id}/sil")
+    public ResponseEntity<?> uyeSil(@PathVariable Long id) {
+        try {
+            Uye uye = uyeRepository.findById(id).orElse(null);
+            if (uye == null) {
+                return ResponseEntity.notFound().build();
+            }
+            uyeRepository.delete(uye);
+            return ResponseEntity.ok(Map.of("message", "Üye kulüpten çıkarıldı"));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Üye silinemedi: " + e.getMessage()));
         }
     }
 }

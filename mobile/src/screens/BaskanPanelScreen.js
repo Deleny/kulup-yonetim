@@ -57,7 +57,7 @@ export default function BaskanPanelScreen({ navigation, route }) {
 
             setStats({
                 uyeSayisi: statsRes.data.toplamUye || 0,
-                bekleyenTalep: 0, // Backend'de ayrı endpoint gerekebilir
+                bekleyenTalep: statsRes.data.bekleyenTalep || 0,
                 aktifEtkinlik: etkinlikRes.data?.length || 0,
                 bekleyenGorev: statsRes.data.bekleyenGorev || 0,
                 odenmemisAidat: statsRes.data.bekleyenAidat || 0,
